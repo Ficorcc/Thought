@@ -14,7 +14,6 @@
     <p>
         <small><ins>English</ins></small>
         <small><a href="README.zh-cn.md">简体中文</a></small>
-        <small><a href="README.ja.md">日本語</a></small>
     </p>
 </div>
 

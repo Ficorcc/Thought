@@ -7,10 +7,6 @@ import zhCN from "./zh-cn/index.yaml";
 import zhCNScript from "./zh-cn/script.yaml";
 import zhCNLinkroll from "./zh-cn/linkroll.yaml";
 import zhCNEmail from "./zh-cn/email.yaml";
-import ja from "./ja/index.yaml";
-import jaScript from "./ja/script.yaml";
-import jaLinkroll from "./ja/linkroll.yaml";
-import jaEmail from "./ja/email.yaml";
 
 // Translation object mapping locale codes to their respective translation data
 const translations = {
@@ -25,12 +21,6 @@ const translations = {
 		script: zhCNScript,
 		linkroll: zhCNLinkroll,
 		email: zhCNEmail
-	},
-	ja: {
-		index: ja,
-		script: jaScript,
-		linkroll: jaLinkroll,
-		email: jaEmail
 	}
 };
 
