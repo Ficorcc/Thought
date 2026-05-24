@@ -30,7 +30,19 @@ jobs:
         cache: 'pnpm'
 
     - name: Export Environment Variables
-      run: echo '${{ secrets.ENV }}' > .env
+      env:
+        ENV_FILE: ${{ secrets.ENV }}
+      run: printf '%s\n' "$ENV_FILE" > .env
+
+    - name: Validate Environment Variables
+      run: |
+        set -eu
+        for name in SITE PASS_KEY AUTHOR_ID GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET; do
+          if ! grep -qE "^${name}=.+" .env; then
+            echo "::error title=Missing ENV secret::${name} is missing from the repository secret ENV."
+            exit 1
+          fi
+        done
 
     - name: Create wrangler.toml from template
       env:
