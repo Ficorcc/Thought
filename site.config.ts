@@ -13,7 +13,7 @@ const config = siteConfig({
 	description: "在路上的思绪与脚印",
 	copyright: {
 		type: "CC BY-NC-ND 4.0",
-		year: "2026"
+		year: "2008"
 	},
 	timezone: "Asia/Shanghai",
 	i18n: {
