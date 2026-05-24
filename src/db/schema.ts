@@ -30,6 +30,10 @@ export const Comment = sqliteTable("comment", {
 	drifter: text().references(() => Drifter.id, { onUpdate: "cascade", onDelete: "set null" }),
 	// Optional nickname for unauthenticated users
 	nickname: text(),
+	// Optional email for unauthenticated users, kept private
+	email: text(),
+	// Optional homepage for unauthenticated users
+	homepage: text(),
 	content: text().notNull()
 });
 

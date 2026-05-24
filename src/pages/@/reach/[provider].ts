@@ -16,7 +16,7 @@ export const GET: APIRoute = async ({ cookies, params, url, locals, redirect, re
 	const errorStatus = url.searchParams.get("error");
 
 	// Retrieve and clean up escort token containing OAuth state
-	const escort = await Token.check(cookies, "escort");
+	const escort = await Token.check(cookies, "escort", false);
 	await Token.revoke("escort", cookies);
 
 	if (code) {

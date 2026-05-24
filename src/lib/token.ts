@@ -55,10 +55,10 @@ export namespace Token {
 			.setExpirationTime(expiration)
 			.encrypt(new Uint8Array(Buffer.from(PASS_KEY, "base64")));
 
-		// Set secure HTTP-only cookie with proper domain and security settings
+		// Set a host-only secure HTTP-only cookie. Avoid forcing `domain` so OAuth
+		// state cookies work reliably on workers.dev, custom domains and localhost.
 		cookies.set(name, token, {
 			path: "/",
-			domain: new URL(site!).hostname,
 			maxAge: typeof expiration === "number" ? expiration : ms(expiration) / 1000,
 			secure: true,
 			httpOnly: true,
@@ -84,7 +84,7 @@ export namespace Token {
 			// Check if token should be renewed
 			if (payload.exp && renew) {
 				// Create new payload without exp claim (will be set by issue method)
-				const { _exp, _iat, ...renewal } = payload;
+				const { exp, iat, nbf, ...renewal } = payload;
 				await issue(cookies, name, renewal);
 			}
 
@@ -102,6 +102,7 @@ export namespace Token {
 	 */
 	export async function revoke(name: string, cookies: AstroCookies): Promise<void> {
 		if (!cookies.has(name)) return;
+		cookies.delete(name, { path: "/" });
 		cookies.delete(name, { path: "/", domain: new URL(site!).hostname });
 	}
 }

@@ -53,6 +53,7 @@ comment:
 confirm: Confirm
 contents: Contents
 delete: Delete
+optional: Optional
 drifter:
   deactivate:
     cancel: Linger on

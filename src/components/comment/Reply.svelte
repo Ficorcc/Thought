@@ -44,6 +44,8 @@ let profileView: boolean = $state(false); // User profile view state
 let content: string = $state(""); // Comment content, will be initialized in onMount
 let preview: boolean = $state(false); // Toggle between edit and preview mode
 let nickname: string | null = $state(null); // Nickname for unauthenticated users
+let email: string | null = $state(null); // Email for unauthenticated users
+let homepage: string | null = $state(null); // Homepage for unauthenticated users
 let captcha: string | undefined = $state(); // Captcha token for unauthenticated users
 let resetTurnstile: (() => void) | undefined = $state(); // Function to reset Turnstile widget
 let overlength: boolean = $derived(content.length > Number(config.comment?.["max-length"])); // Content length check
@@ -133,6 +135,9 @@ async function submit() {
 		// For unauthenticated users, validate captcha and nickname
 		if (!captcha) return pushTip("error", t("comment.verify.failure"));
 		if (!nickname?.trim()) return pushTip("warning", t("comment.nickname.empty"));
+		if (!email?.trim()) return pushTip("warning", t("email.empty"));
+		const homepageValue = homepage?.trim();
+		const normalizedHomepage = homepageValue ? (/^https?:\/\//i.test(homepageValue) ? homepageValue : `https://${homepageValue}`) : undefined;
 
 		({ error } = await actions.comment.create({
 			locale: context.locale,
@@ -142,7 +147,7 @@ async function submit() {
 			content,
 			link: link,
 			push: context.subscription,
-			passer: { nickname, captcha }
+			passer: { nickname, email, homepage: normalizedHomepage, captcha }
 		}));
 
 		// Only reset turnstile for top-level comments (when reply is undefined) or if there was an error
@@ -152,6 +157,13 @@ async function submit() {
 		}
 
 		localStorage.setItem("nickname", nickname!);
+		localStorage.setItem("comment-email", email!);
+		if (normalizedHomepage) {
+			localStorage.setItem("comment-homepage", normalizedHomepage);
+			homepage = normalizedHomepage;
+		} else {
+			localStorage.removeItem("comment-homepage");
+		}
 	} else if (edit) {
 		// For authenticated users editing a comment
 		({ error } = await actions.comment.edit({ id: edit, content }));
@@ -272,6 +284,8 @@ onMount(() => {
 	// If unauthenticated, setup nickname and Turnstile
 	if (!context.drifter) {
 		nickname = localStorage.getItem("nickname");
+		email = localStorage.getItem("comment-email");
+		homepage = localStorage.getItem("comment-homepage");
 	}
 });
 </script>
@@ -280,25 +294,38 @@ onMount(() => {
 	<div class="flex flex-col items-center gap-5">
 		<h2>{t("drifter.signin")}</h2>
 
-		<ul class="flex flex-col gap-1 list-inside mx-4">
-			<li>{t("oauth.benefit.captcha")}</li>
-			<li>{t("oauth.benefit.comment")}</li>
-			<li>{t("oauth.benefit.notification")}</li>
-			<li>{t("oauth.benefit.homepage")}</li>
-		</ul>
+		{#if !context.drifter}
+			<fieldset class="flex flex-col gap-2 w-full min-w-64">
+				<input type="text" placeholder={t("comment.nickname.name")} bind:value={nickname} class="input border-weak text-sm" />
+				<input type="email" placeholder={t("email.name")} bind:value={email} class="input border-weak text-sm" />
+				<input type="url" placeholder={`${t("drifter.homepage")} (${t("optional")})`} bind:value={homepage} class="input border-weak text-sm" />
+			</fieldset>
+		{/if}
 
-		<hr class="border-0 border-b border-dashed w-full" />
+		{#if context.oauth.length}
+			<ul class="flex flex-col gap-1 list-inside mx-4">
+				<li>{t("oauth.benefit.captcha")}</li>
+				<li>{t("oauth.benefit.comment")}</li>
+				<li>{t("oauth.benefit.notification")}</li>
+				<li>{t("oauth.benefit.homepage")}</li>
+			</ul>
 
-		<div class="flex flex-col items-center gap-2">
-			{#each context.oauth as provider}
-				<a href={`/@/reach/${provider.name}`} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
-					<Icon size="0.95rem" name={provider.logo} />
-					<span class="font-bold text-sm">{t("oauth.signin", { provider: provider.name })}</span>
-				</a>
-			{/each}
-		</div>
+			<hr class="border-0 border-b border-dashed w-full" />
 
-		<button class="form-button" onclick={() => (reachView = false)}>{t("cancel")}</button>
+			<div class="flex flex-col items-center gap-2">
+				{#each context.oauth as provider}
+					<a href={`/@/reach/${provider.name}`} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
+						<Icon size="0.95rem" name={provider.logo} />
+						<span class="font-bold text-sm">{t("oauth.signin", { provider: provider.name })}</span>
+					</a>
+				{/each}
+			</div>
+		{/if}
+
+		<section class="flex gap-5">
+			<button class="form-button" onclick={() => (reachView = false)}>{t("cancel")}</button>
+			<button class="form-button" onclick={() => (reachView = false)}>{t("confirm")}</button>
+		</section>
 	</div>
 </Modal>
 
@@ -336,7 +363,7 @@ onMount(() => {
 					{/if}
 				{/if}
 			</article>
-			<section class="flex items-center gap-2">
+			<section class="flex flex-wrap items-center gap-2">
 				<figure class="relative flex items-center group/pop">
 					<figcaption class="contents"><Icon name="lucide--smile" /></figcaption>
 					<ul class="absolute bottom-full -start-3 flex flex-wrap sm:flex-nowrap items-center justify-center gap-2 mb-1 border-2 border-weak rounded-sm py-2 px-3 bg-background shadow-md pop">
@@ -355,10 +382,7 @@ onMount(() => {
 					{#if context.turnstile}
 						<Turnstile siteKey={context.turnstile} bind:reset={resetTurnstile} on:expired={() => (captcha = undefined)} on:error={() => (captcha = undefined)} on:callback={({ detail }) => (captcha = detail.token)} />
 					{/if}
-					<input type="text" placeholder={t("comment.nickname.name")} bind:value={nickname} class="input border-weak w-35 text-sm" />
-					{#if context.oauth.length}
-						<button onclick={() => (reachView = true)}><Icon name="lucide--user-round" title={t("drifter.signin")} /></button>
-					{/if}
+					<button onclick={() => (reachView = true)}><Icon name="lucide--user-round" title={t("drifter.signin")} /></button>
 				{/if}
 
 				{#if context.push}

@@ -29,6 +29,8 @@ export const comment = {
 			passer: z
 				.object({
 					nickname: z.string().nullish(), // Nickname for unauthenticated users
+					email: z.string().email().nullish(), // Email for unauthenticated users
+					homepage: z.string().url().nullish(), // Homepage for unauthenticated users
 					captcha: z.string().nullish() // CAPTCHA token for unauthenticated users
 				})
 				.optional()
@@ -52,7 +54,7 @@ export const comment = {
 			const drifter: string | undefined = oauth.length ? (await Token.check(cookies, "passport"))?.visa : undefined;
 
 			if (!drifter) {
-				if (turnstile && passer?.captcha && passer.nickname?.trim()) {
+				if (turnstile && passer?.captcha && passer.nickname?.trim() && passer.email?.trim()) {
 					const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
@@ -85,7 +87,18 @@ export const comment = {
 			const db = drizzle(locals.runtime.env.DB);
 
 			// Insert the new comment
-			await db.insert(Comment).values({ id, section, item, reply, drifter, nickname: passer?.nickname, timestamp: new Date(), content });
+			await db.insert(Comment).values({
+				id,
+				section,
+				item,
+				reply,
+				drifter,
+				nickname: passer?.nickname,
+				email: passer?.email,
+				homepage: passer?.homepage,
+				timestamp: new Date(),
+				content
+			});
 
 			// The `ctx.waitUntil()` method is specific to Cloudflare Workers.
 			locals.runtime.ctx.waitUntil(
@@ -368,7 +381,7 @@ export const comment = {
 					nickname: Comment.nickname,
 					description: Drifter.description,
 					image: Drifter.image,
-					homepage: Drifter.homepage,
+					homepage: sql<string | null>`coalesce(${Drifter.homepage}, ${Comment.homepage})`,
 					// Mark if this user is the site author
 					author: sql`CASE WHEN ${Drifter.id} = ${author} THEN 1 ELSE 0 END`
 				})

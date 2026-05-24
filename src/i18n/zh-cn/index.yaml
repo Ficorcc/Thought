@@ -53,6 +53,7 @@ comment:
 confirm: 确认
 contents: 目录
 delete: 删除
+optional: 选填
 drifter:
   deactivate:
     cancel: 继续驻足
