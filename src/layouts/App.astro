@@ -1,17 +1,15 @@
 ---
-import { Font, type CssVariable } from "astro:assets";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { turnstile } from "$config";
 
 const { locale, title, subtitle, description, author, article } = Astro.props;
 
-const mainFonts: Record<string, CssVariable> = {
+const mainFonts: Record<string, string> = {
 	en: "--font-noto-serif",
-	"zh-cn": "--font-noto-serif-sc",
-	ja: "--font-noto-serif-jp"
+	"zh-cn": "--font-noto-serif-sc"
 };
 
-const localedMainFont = mainFonts[locale];
+const localedMainFont = mainFonts[locale] ?? mainFonts["zh-cn"];
 ---
 
 <html lang={locale} dir={["ar", "he", "fa", "ur"].includes(locale) ? "rtl" : "ltr"}>
@@ -55,11 +53,6 @@ const localedMainFont = mainFonts[locale];
 		<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
 		<link rel="shortcut icon" href="/favicon.ico" />
 		<link rel="sitemap" href="/sitemap-index.xml" />
-
-		<Font cssVariable="--font-playwrite-mx" />
-		<Font cssVariable="--font-the-peak-font-plus" />
-		<Font cssVariable="--font-maple-mono-nf-cn" />
-		<Font cssVariable={localedMainFont} />
 
 		<style set:html={`[lang="${locale}"]{--font-serif:var(${localedMainFont})}`}></style>
 

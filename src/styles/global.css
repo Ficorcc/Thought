@@ -23,6 +23,11 @@
 	--block-color: #eeeeee;
 	--shadow-color: #cdcdcc;
 	--selection-color: #adadacc3;
+	--font-noto-serif: "Noto Serif", Georgia, "Times New Roman", serif;
+	--font-noto-serif-sc: "Noto Serif SC", "Source Han Serif SC", STSong, "Songti SC", SimSun, serif;
+	--font-playwrite-mx: "Apple Chancery", "Segoe Script", cursive;
+	--font-the-peak-font-plus: Georgia, STSong, serif;
+	--font-maple-mono-nf-cn: "Maple Mono NF CN", "Maple Mono", Consolas, Monaco, "Cascadia Code", "Courier New", monospace;
 
 	--swup-fade-theme-duration: 0.15s;
 
