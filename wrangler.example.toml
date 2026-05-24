@@ -17,6 +17,10 @@ database_name = "$DATABASE_NAME"
 database_id = "$DATABASE_ID"
 migrations_dir = "drizzle"
 
+[[kv_namespaces]]
+binding = "SESSION"
+id = "eefa5e634e9b46dbaf581de4b0f1be6b"
+
 [[ratelimits]]
 name = "COMMENT_LIMIT"
 namespace_id = "0001"
