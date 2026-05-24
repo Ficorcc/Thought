@@ -113,6 +113,9 @@ email:
 home:
   heatmap:
     empty: No words
+    guide:
+      one: '{count} guide'
+      other: '{count} guides'
     jotting:
       one: '{count} jotting'
       other: '{count} jottings'
@@ -124,10 +127,15 @@ home:
 jotting:
   empty: No jottings available
   tag: Tag
+guide:
+  empty: No guides available
+  series: Series
+  tag: Tag
 language: English
 navigation:
   about: About
   email: Email
+  guide: Guide
   home: Home
   jotting: Jotting
   note: Note

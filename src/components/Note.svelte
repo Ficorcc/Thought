@@ -2,12 +2,19 @@
 import { untrack } from "svelte";
 import { flip } from "svelte/animate";
 import config from "$config";
+import type { Section } from "$lib/config";
 import Time from "$lib/time";
 import Icon from "$components/Icon.svelte";
 import Pagination from "$components/Pagination.svelte";
 import i18nit from "$i18n";
 
-let { locale, notes, series: seriesList, tags: tagList }: { locale: string; notes: any[]; series: string[]; tags: string[] } = $props();
+let {
+	locale,
+	notes,
+	series: seriesList,
+	tags: tagList,
+	section = "note"
+}: { locale: string; notes: any[]; series: string[]; tags: string[]; section?: Section } = $props();
 
 const t = i18nit(locale);
 
@@ -15,7 +22,7 @@ const t = i18nit(locale);
 let initial = $state(true);
 
 /** Pagination size */
-const size: number = config.pagination?.note || 15;
+const size: number = config.pagination?.[section] || 15;
 
 let pages: number = $state(1);
 let page: number = $state(1);
@@ -137,7 +144,7 @@ $effect(() => {
 				<time datetime={note.data.timestamp.toISOString()} class="mt-1 font-mono text-[0.65rem] text-secondary">{Time.toString(note.data.timestamp)}</time>
 			</section>
 		{:else}
-			<div class="pt-[10vh] text-center text-secondary font-bold text-xl">{t("note.empty")}</div>
+			<div class="pt-[10vh] text-center text-secondary font-bold text-xl">{t(`${section}.empty`)}</div>
 		{/each}
 
 		<Pagination bind:pages bind:page />
@@ -145,7 +152,7 @@ $effect(() => {
 
 	<aside class="sm:basis-50 shrink-0 flex flex-col gap-5">
 		<section>
-			<h4>{t("note.series")}</h4>
+			<h4>{t(`${section}.series`)}</h4>
 			<p>
 				{#each seriesList as seriesItem (seriesItem)}
 					<button class:selected={seriesItem == series} onclick={() => chooseSeries(seriesItem)}>{seriesItem}</button>
@@ -154,7 +161,7 @@ $effect(() => {
 		</section>
 
 		<section>
-			<h4>{t("note.tag")}</h4>
+			<h4>{t(`${section}.tag`)}</h4>
 			<p>
 				{#each tagList as tag (tag)}
 					<button class:selected={tags.includes(tag)} onclick={() => switchTag(tag)}>{tag}</button>

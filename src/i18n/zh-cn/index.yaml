@@ -111,6 +111,8 @@ email:
 home:
   heatmap:
     empty: 无字
+    guide:
+      other: 指南 {count} 篇
     jotting:
       other: 随笔 {count} 则
     note:
@@ -120,10 +122,15 @@ home:
 jotting:
   empty: 暂无随笔
   tag: 标签
+guide:
+  empty: 暂无指南
+  series: 系列
+  tag: 标签
 language: 简体中文
 navigation:
   about: 絮述
   email: 邮箱
+  guide: 指南
   home: 序章
   jotting: 随笔
   note: 文记

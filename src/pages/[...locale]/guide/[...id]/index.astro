@@ -1,0 +1,101 @@
+---
+import { getCollection, render } from "astro:content";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import config, { monolocale } from "$config";
+import Time from "$lib/time";
+import Base from "$layouts/Base.astro";
+import TOC from "$components/TOC.astro";
+import Comments from "$components/comment/Section.astro";
+import Position from "$components/Position.astro";
+import Icon from "$components/Icon.svelte";
+import Sensitive from "$components/Sensitive.svelte";
+import i18nit from "$i18n";
+
+export async function getStaticPaths() {
+	// Get all guides excluding drafts
+	const guides = await getCollection("guide", guide => !guide.data.draft);
+
+	return guides.map(guide => {
+		let locale: string | undefined;
+		let id: string;
+
+		if (monolocale) {
+			locale = undefined;
+			id = guide.id;
+		} else {
+			// Extract language and guide ID from file path structure
+			const [language, ...ids] = guide.id.split("/");
+
+			locale = config.i18n.defaultLocale === language ? undefined : language;
+			id = ids.join("/");
+		}
+
+		// Generate path params with optional locale (omit for default locale)
+		return { params: { locale, id }, props: { guide } };
+	});
+}
+
+const { locale = config.i18n.defaultLocale } = Astro.params;
+const { guide } = Astro.props;
+
+// Render markdown content and extract headings for TOC
+const { Content, headings, remarkPluginFrontmatter: frontmatter } = await render(guide);
+
+const series = guide.data.series
+	? (
+			await getCollection(
+				"guide",
+				item => !item.data.draft && item.data.series === guide.data.series && (monolocale || item.id.startsWith(`${locale}/`))
+			)
+		)
+			.sort((a, b) => a.data.timestamp.getTime() - b.data.timestamp.getTime())
+			.map(item => ({
+				title: item.data.title,
+				url: getRelativeLocaleUrl(locale, `/guide/${monolocale ? item.id : item.id.split("/").slice(1).join("/")}`),
+				current: item.id === guide.id
+			}))
+	: undefined;
+
+const t = i18nit(locale);
+---
+
+<Base title={guide.data.title} {locale} description={guide.data.description} article={{ timestamp: guide.data.timestamp, section: guide.data.series, tags: guide.data.tags }}>
+	<main class="flex flex-col gap-6">
+		<header class="flex flex-col gap-4">
+			<h1 class="select-text">{guide.data.title}</h1>
+			<div class="flex flex-col gap-3 sm:flex-row *:flex *:items-center *:gap-1 *:text-[0.875rem] *:text-secondary">
+				<time datetime={guide.data.timestamp.toISOString()}><Icon name="lucide--calendar" />{Time.toString(guide.data.timestamp)}</time>
+				{
+					guide.data.series && (
+						<span>
+							<Icon name="lucide--layers" />
+							{guide.data.series}
+						</span>
+					)
+				}
+				{
+					!!guide.data.tags?.length && (
+						<span>
+							<Icon name="lucide--hash" />
+							{guide.data.tags?.join("; ")}
+						</span>
+					)
+				}
+				<span><Icon name="lucide--pilcrow" />{t("read.words", { count: frontmatter.words })}</span>
+			</div>
+			<hr class="border-b border-weak" />
+		</header>
+
+		<Sensitive {locale} back={getRelativeLocaleUrl(locale, "/guide")} sensitive={guide.data.sensitive} client:load>
+			<div class="contents">
+				<div class="flex gap-5">
+					<section id="markdown-content" class="markdown"><Content /></section>
+					{(guide.data.toc || !!guide.data.series) && <TOC headings={guide.data.toc ? headings : undefined} {locale} {series} />}
+				</div>
+				<blockquote id="comment-section"><Comments {locale} link={`${Astro.url.origin}${Astro.url.pathname}`} section="guide" item={guide.id} /></blockquote>
+			</div>
+		</Sensitive>
+
+		<Position {locale} toc={guide.data.toc} series={!!guide.data.series} />
+	</main>
+</Base>

@@ -1,7 +1,7 @@
 ---
 import { getCollection, getEntry, render } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
-import { monolocale } from "$config";
+import config, { monolocale } from "$config";
 import Icon from "$components/Icon.svelte";
 import i18nit from "$i18n";
 
@@ -94,12 +94,37 @@ const jottingWords = (await Promise.all(jottings.map(async jotting => (await ren
 	0
 );
 
+const guides = await getCollection("guide", guide => {
+	// Filter by publication status and locale
+	let published = !guide.data.draft;
+	let localed = monolocale || guide.id.split("/")[0] === locale;
+
+	return published && localed;
+});
+
+// Calculate total word count across all guides
+const guideWords = (await Promise.all(guides.map(async guide => (await render(guide)).remarkPluginFrontmatter.words))).reduce(
+	(summary, words) => summary + words,
+	0
+);
+
 // Aggregate total word count
-const totalWords = noteWords + jottingWords;
+const totalWords = noteWords + guideWords + jottingWords;
 
 // Check if policy file exists for current locale
 const localePrefix = monolocale ? "" : `${locale}/`;
 const policy = await getEntry("information", `${localePrefix}policy`);
+
+function localize(value: string | Record<string, string | undefined> | undefined): string {
+	if (!value) return "";
+	if (typeof value === "string") return value;
+
+	return value[locale] || value[config.i18n.defaultLocale] || Object.values(value)[0] || "";
+}
+
+function external(url: string): boolean {
+	return /^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(url) || /^[a-z][a-z0-9+.-]*:/i.test(url);
+}
 ---
 
 <footer class="flex flex-col sm:flex-row items-center justify-between gap-2 mt-8 mb-5 sm:mb-3 text-sm font-mono">
@@ -129,10 +154,28 @@ const policy = await getEntry("information", `${localePrefix}policy`);
 				</>
 			)
 		}
+		{
+			!!config.footer?.socials?.length && (
+				<>
+					<span>·</span>
+					<span class="inline-flex items-center gap-2">
+						{config.footer.socials.map(social => {
+							const url = localize(social.url);
+							return (
+								<a href={url} target={external(url) ? "_blank" : undefined} rel={external(url) ? "noopener noreferrer" : undefined} aria-label={localize(social.label)} class="inline-flex">
+									<Icon name={social.icon || "lucide--link"} title={localize(social.label)} />
+								</a>
+							);
+						})}
+					</span>
+				</>
+			)
+		}
 	</div>
 	<code class="flex items-center gap-2.5">
 		<p>Powered by</p>
 		<a href="https://astro.build/" aria-label="Astro" target="_blank" class="inline-flex"><Icon name="simple-icons--astro" /></a>
+		<a href="https://svelte.dev/" aria-label="Svelte" target="_blank" class="inline-flex"><Icon name="simple-icons--svelte" /></a>
 		<span>·</span>
 		<a href="https://github.com/tuyuritio/astro-theme-thought-lite" aria-label="Theme" target="_blank" class="inline-flex"><Icon name="simple-icons--github" title={t("theme")} /></a>
 	</code>

@@ -24,13 +24,16 @@ The theme's custom configuration is located in the `site.config.ts` file in the 
 | `timezone` | `string` | Site display timezone, refer to [Timezone List](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List). |
 | `i18n` | `object` | See [Internationalization Configuration Guide](internationalization) for details. |
 | `pagination` | `Record<Section, number>` | Number of items displayed per page for each section. |
+| `header.launcher` | `object` | Header rocket shortcut menu configuration, including icon, label, and links. |
+| `footer.socials` | `LinkItem[]` | Footer social network icon links. |
+| `home.widgets` | `("latest" \| "heatmap")[]` | Display order for the homepage Latest block and heatmap. |
 | `heatmap` | `Heatmap` | Heatmap display configuration. |
 | `feed.section` | `"*" \| Section[]` | Content sections included in the feed; `*` indicates all. |
 | `feed.limit` | `number` | Maximum number of items displayed in the feed. |
 | `comment.max-length` | `number` | Maximum comment length. |
 | `comment.hide-deleted` | `boolean` | Hide deleted comments. |
 | `comment.history` | `boolean` | Show comment history. |
-| `latest` | `"*" \| Section[]` | Sections displayed in the "Latest" on the homepage; `*` indicates all. |
+| `latest` | `"*" \| Section[] \| object` | Homepage Latest configuration; supports sections and item count. |
 
 ### Type Descriptions
 
@@ -47,7 +50,16 @@ The theme's custom configuration is located in the `site.config.ts` file in the 
 #### `Section`
 
 - `"note"`
+- `"guide"`
 - `"jotting"`
+
+#### `LinkItem`
+
+| Field | Type | Description |
+|:- |:- |:- |
+| `label` | `string \| Record<string, string>` | Link label, optionally localized. |
+| `url` | `string \| Record<string, string>` | Link URL, optionally localized. |
+| `icon` | `string` | Optional icon name. |
 
 #### `Heatmap`
 

@@ -7,7 +7,7 @@ description: A complete guide to setting up Cloudflare D1 database from scratch,
 toc: true
 ---
 
-The theme's built-in comment system is built on Astro Actions and Cloudflare D1. For some configuration details, please refer to the [Site Configuration Guide](/note/configuration).
+The theme's built-in comment system is built on Astro Actions and Cloudflare D1. For some configuration details, please refer to the [Site Configuration Guide](/guide/configuration).
 
 ## Create Cloudflare D1 Database
 

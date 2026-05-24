@@ -6,7 +6,22 @@ type CCLicenseType = "CC0 1.0" | "CC BY 4.0" | "CC BY-SA 4.0" | "CC BY-NC 4.0" |
 /**
  * Content Section Type
  */
-export type Section = "note" | "jotting";
+export type Section = "note" | "guide" | "jotting";
+
+type IconName = `${string}--${string}`;
+type LocalizedText<Locales extends readonly string[] = readonly string[]> = string | Partial<Record<Locales[number], string>>;
+type LocalizedURL<Locales extends readonly string[] = readonly string[]> = string | Partial<Record<Locales[number], string>>;
+
+interface LinkItem<Locales extends readonly string[] = readonly string[]> {
+	/** Link label */
+	label: LocalizedText<Locales>;
+
+	/** Link URL */
+	url: LocalizedURL<Locales>;
+
+	/** Link icon */
+	icon?: IconName;
+}
 
 interface SiteConfigOptions<Locales extends readonly string[] = readonly string[]> {
 	/** Site Title */
@@ -53,6 +68,33 @@ interface SiteConfigOptions<Locales extends readonly string[] = readonly string[
 
 	/** Pagination Configuration */
 	pagination?: Partial<Record<Section, number>>;
+
+	/** Header Configuration */
+	header?: {
+		/** Shortcut launcher displayed beside the language switcher */
+		launcher?: {
+			/** Launcher accessible label */
+			label?: LocalizedText<Locales>;
+
+			/** Launcher trigger icon */
+			icon?: IconName;
+
+			/** Shortcut links */
+			links: LinkItem<Locales>[];
+		};
+	};
+
+	/** Footer Configuration */
+	footer?: {
+		/** Social links displayed in the footer */
+		socials?: LinkItem<Locales>[];
+	};
+
+	/** Homepage Configuration */
+	home?: {
+		/** Homepage widget order */
+		widgets?: Array<"latest" | "heatmap">;
+	};
 
 	/** Heatmap Configuration */
 	heatmap?:
@@ -109,7 +151,16 @@ interface SiteConfigOptions<Locales extends readonly string[] = readonly string[
 	};
 
 	/** Latest Content Display */
-	latest?: "*" | Section[];
+	latest?:
+		| "*"
+		| Section[]
+		| {
+				/** Sections displayed in the "Latest" on the homepage */
+				sections?: "*" | Section[];
+
+				/** Number of latest items to show */
+				limit?: number;
+		  };
 }
 
 /**

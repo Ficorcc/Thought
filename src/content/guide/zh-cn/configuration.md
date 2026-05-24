@@ -24,13 +24,16 @@ toc: true
 | `timezone` | `string` | 站点显示时区，参考[时区列表](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List)。 |
 | `i18n` | `object` | 详见[国际化配置指南](internationalization)。 |
 | `pagination` | `Record<Section, number>` | 各板块每页显示的条目数。 |
+| `header.launcher` | `object` | 顶部火箭快捷入口配置，可设置图标、菜单名称与链接。 |
+| `footer.socials` | `LinkItem[]` | 页脚社交网络图标链接。 |
+| `home.widgets` | `("latest" \| "heatmap")[]` | 首页「最新内容」与热力图的显示顺序。 |
 | `heatmap` | `Heatmap` | 热力图显示配置。 |
 | `feed.section` | `"*" \| Section[]` | 订阅源包含的内容板块；`*` 表示全部。 |
 | `feed.limit` | `number` | 订阅源中显示的最大条目数。 |
 | `comment.max-length` | `number` | 评论最大字数。 |
 | `comment.hide-deleted` | `boolean` | 隐藏已删除的评论。 |
 | `comment.history` | `boolean` | 显示评论历史记录。 |
-| `latest` | `"*" \| Section[]` | 首页「最新内容」展示的板块；`*` 表示全部。 |
+| `latest` | `"*" \| Section[] \| object` | 首页「最新内容」展示配置；可设置板块与显示数量。 |
 
 ### 类型说明
 
@@ -47,7 +50,16 @@ toc: true
 #### `Section`
 
 - `"note"`
+- `"guide"`
 - `"jotting"`
+
+#### `LinkItem`
+
+| 字段 | 类型 | 描述 |
+|:- |:- |:- |
+| `label` | `string \| Record<string, string>` | 链接名称，可按语言配置。 |
+| `url` | `string \| Record<string, string>` | 链接地址，可按语言配置。 |
+| `icon` | `string` | 可选图标名。 |
 
 #### `Heatmap`
 

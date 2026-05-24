@@ -60,6 +60,25 @@ export const GET: APIRoute = async ({ site, params }) => {
 		items.push(...notes);
 	}
 
+	if (sections === "*" || sections.includes("guide")) {
+		const guides = await getCollection("guide", guide => {
+			// Apply filtering criteria
+			const published = !guide.data.draft; // Exclude draft posts
+			const localed = monolocale || guide.id.split("/")[0] === language; // Language filter
+
+			// Include guide only if it passes all filters
+			return published && localed;
+		});
+
+		// Attach locale and link for each guide
+		guides.forEach(guide => {
+			const id = monolocale ? guide.id : guide.id.split("/").slice(1).join("/");
+			Reflect.set(guide, "link", new URL(getRelativeLocaleUrl(language, `/guide/${id}`), site).toString());
+		});
+
+		items.push(...guides);
+	}
+
 	if (sections === "*" || sections.includes("jotting")) {
 		const jottings = await getCollection("jotting", jotting => {
 			// Apply filtering criteria

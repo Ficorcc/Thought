@@ -23,10 +23,11 @@ interface ContentItem {
 interface Props {
 	locale: string;
 	notes: ContentItem[];
+	guides: ContentItem[];
 	jottings: ContentItem[];
 }
 
-let { locale, notes, jottings } = Astro.props;
+let { locale, notes, guides, jottings } = Astro.props;
 
 // Initialize translation function for current locale
 const t = i18nit(locale);
@@ -46,6 +47,16 @@ notes.forEach(note => {
 		title: note.data.title,
 		date: Time(note.data.timestamp.toISOString()).toPlainDate(),
 		link: getRelativeLocaleUrl(locale, `/note/${monolocale ? note.id : note.id.split("/").slice(1).join("/")}`)
+	});
+});
+
+// Normalize guides and add to contents list
+guides.forEach(guide => {
+	contents.push({
+		section: "guide",
+		title: guide.data.title,
+		date: Time(guide.data.timestamp.toISOString()).toPlainDate(),
+		link: getRelativeLocaleUrl(locale, `/guide/${monolocale ? guide.id : guide.id.split("/").slice(1).join("/")}`)
 	});
 });
 
@@ -128,6 +139,7 @@ if (frequency === "month") {
 			// Generate details for the popup based on cell content
 			if (count) {
 				const notes = cell.contents.filter(content => content.section === "note");
+				const guides = cell.contents.filter(content => content.section === "guide");
 				const jottings = cell.contents.filter(content => content.section === "jotting");
 
 				if (notes.length) {
@@ -141,6 +153,25 @@ if (frequency === "month") {
 									<li>
 										<a href={note.link} aria-label={note.title} class="ms-1 link">
 											{note.title}
+										</a>
+									</li>
+								))}
+							</ul>
+						);
+					}
+				}
+
+				if (guides.length) {
+					if (frequency === "month") {
+						details.push(<p>{t("home.heatmap.guide", { count: guides.length })}</p>);
+					} else {
+						details.push(
+							<p class="my-1">{t("home.heatmap.guide", { count: guides.length })}：</p>,
+							<ul class="flex flex-col gap-0.5">
+								{guides.map(guide => (
+									<li>
+										<a href={guide.link} aria-label={guide.title} class="ms-1 link">
+											{guide.title}
 										</a>
 									</li>
 								))}

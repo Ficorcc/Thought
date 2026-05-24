@@ -22,7 +22,55 @@ const config = siteConfig({
 	},
 	pagination: {
 		note: 10,
+		guide: 10,
 		jotting: 24
+	},
+	header: {
+		launcher: {
+			label: {
+				en: "Quick links",
+				"zh-cn": "快捷入口"
+			},
+			icon: "lucide--rocket",
+			links: [
+				{
+					label: "BLOGS·CN",
+					url: "https://blogscn.fun/random.html"
+				},
+				{
+					label: { en: "Blog Quest", "zh-cn": "空间穿梭" },
+					url: "https://blogs.quest"
+				},
+				{
+					label: { en: "Forever Blog", "zh-cn": "十年之约" },
+					url: "https://www.foreverblog.cn/go.html"
+				},
+				{
+					label: { en: "Travellings", "zh-cn": "开往" },
+					url: "https://www.travellings.cn/go.html"
+				},
+				{
+					label: { en: "Store Web", "zh-cn": "个站商店" },
+					url: "https://storeweb.cn/s/2456"
+				},
+				{
+					label: { en: "Blog Inc", "zh-cn": "博客集" },
+					url: "https://bloginc.cn/"
+				}
+			]
+		}
+	},
+	footer: {
+		socials: [
+			{ label: "GitHub", icon: "simple-icons--github", url: "https://github.com/Ficorcc" },
+			{ label: "Mastodon", icon: "simple-icons--mastodon", url: "https://mastodon.social/@ficor" },
+			{ label: "Email", icon: "lucide--mail", url: "mailto:ficor@qq.com" },
+			{ label: "QQ", icon: "simple-icons--qq", url: "https://qm.qq.com/" },
+			{ label: "WeChat", icon: "simple-icons--wechat", url: "weixin://" }
+		]
+	},
+	home: {
+		widgets: ["latest", "heatmap"]
 	},
 	heatmap: {
 		unit: "day",
@@ -37,7 +85,10 @@ const config = siteConfig({
 		"hide-deleted": true,
 		history: true
 	},
-	latest: "*"
+	latest: {
+		sections: "*",
+		limit: 2
+	}
 });
 
 const monolocale = Number(config.i18n.locales.length) === 1;

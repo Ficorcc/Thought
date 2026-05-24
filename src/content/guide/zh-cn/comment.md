@@ -7,7 +7,7 @@ description: 从零开始配置 Cloudflare D1 数据库，包括创建数据库�
 toc: true
 ---
 
-本主题内置评论系统基于 Astro Actions 及 Cloudflare D1 构建，部分配置请参考[站点配置指南](/zh-cn/note/configuration)。
+本主题内置评论系统基于 Astro Actions 及 Cloudflare D1 构建，部分配置请参考[站点配置指南](/zh-cn/guide/configuration)。
 
 ## 创建 Cloudflare D1 数据库
 
