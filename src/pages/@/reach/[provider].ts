@@ -1,12 +1,40 @@
 import type { APIRoute } from "astro";
-import { generateCodeVerifier, generateState } from "arctic";
+import { generateCodeVerifier } from "arctic";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { OAuth, type OAuthAccount } from "$lib/oauth";
-import { random, Token } from "$lib/token";
+import { AESEncryption, random, Token } from "$lib/token";
 import { Drifter, Email } from "$db/schema";
 
 export const prerender = false;
+
+type OAuthState = {
+	codeVerifier: string;
+	referrer: string;
+	expires: number;
+};
+
+function encodeState(state: OAuthState) {
+	const encrypted = AESEncryption.encrypt(new TextEncoder().encode(JSON.stringify(state)));
+	if (!encrypted) throw new Error("Failed to encrypt OAuth state");
+	return Buffer.from(encrypted).toString("base64url");
+}
+
+function decodeState(state: string | null): OAuthState | null {
+	if (!state) return null;
+
+	try {
+		const decrypted = AESEncryption.decrypt(Buffer.from(state, "base64url"));
+		if (!decrypted) return null;
+
+		const result = JSON.parse(new TextDecoder().decode(decrypted)) as OAuthState;
+		if (result.expires < Date.now()) return null;
+
+		return result;
+	} catch (_) {
+		return null;
+	}
+}
 
 export const GET: APIRoute = async ({ cookies, params, url, locals, redirect, request }) => {
 	const { provider } = params;
@@ -15,13 +43,14 @@ export const GET: APIRoute = async ({ cookies, params, url, locals, redirect, re
 	const state = url.searchParams.get("state");
 	const errorStatus = url.searchParams.get("error");
 
-	// Retrieve and clean up escort token containing OAuth state
-	const escort = await Token.check(cookies, "escort", false);
+	// Prefer stateless encrypted OAuth state; fall back to the legacy escort
+	// cookie so in-flight login attempts from an older deployment still work.
+	const escort = decodeState(state) ?? (await Token.check(cookies, "escort", false));
 	await Token.revoke("escort", cookies);
 
 	if (code) {
 		// Validate state parameter to prevent CSRF attacks
-		if (escort?.state !== state) return new Response("Unauthorized", { status: 401 });
+		if (!escort || ("state" in escort && escort.state !== state)) return new Response("Unauthorized", { status: 401 });
 
 		// Exchange authorization code for user account information
 		const user: OAuthAccount = await new OAuth(provider).validate(code, escort.codeVerifier);
@@ -85,10 +114,11 @@ export const GET: APIRoute = async ({ cookies, params, url, locals, redirect, re
 		}
 	} else {
 		// Initialize OAuth flow with PKCE parameters
-		const state = generateState();
 		const codeVerifier = generateCodeVerifier();
+		const state = encodeState({ codeVerifier, referrer: request.headers.get("referer") ?? "/", expires: Date.now() + 5 * 60 * 1000 });
 
-		// Store OAuth state and referrer in escort token
+		// Store OAuth state and referrer in escort token as a temporary
+		// compatibility fallback for browsers that already started a flow.
 		await Token.issue(cookies, "escort", { state, codeVerifier, referrer: request.headers.get("referer") ?? "/" }, "5 minutes");
 
 		// Generate OAuth authorization URL and redirect user
