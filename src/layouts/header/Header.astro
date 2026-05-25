@@ -102,6 +102,10 @@ function external(url: string): boolean {
 					</Menu>
 				)
 			}
+
+			<a href={getRelativeLocaleUrl(locale, "/comment/manage")} aria-label={t("comment.manage.title")} class="inline-flex">
+				<Icon name="lucide--message-square-more" title={t("comment.manage.title")} />
+			</a>
 		</footer>
 	</nav>
 </header>

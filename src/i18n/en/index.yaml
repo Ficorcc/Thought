@@ -47,6 +47,36 @@ comment:
   submit: Submit
   success: Your thoughts have been delivered
   time: Posted at
+  manage:
+    delete:
+      description: Deleting keeps the comment in the thread, but hides its body.
+      failure: Failed to delete comment
+      title: Delete this comment?
+    description: Author-only panel for filtering comments and checking edit history.
+    empty: No comments match the current filters
+    fetch:
+      failure: Failed to load comment manager
+    history:
+      empty: No edit history yet
+      failure: Failed to load edit history
+      title: Edit history
+    id: Comment ID
+    item: Content ID
+    loading: Loading
+    replyTo: Reply to
+    reset: Reset
+    search: Search
+    searchPlaceholder: Search title, content, nickname, email
+    section: Section
+    sections:
+      all: All sections
+    state: State
+    states:
+      active: Active
+      all: All states
+      deleted: Deleted
+    title: Comment Manager
+    unauthorized: Only the site author can access this page
   verify:
     answer: Answer
     failure: Human verification failed

@@ -47,6 +47,36 @@ comment:
   submit: 发表
   success: 想法已送达
   time: 发送时间
+  manage:
+    delete:
+      description: 删除后评论会保留在回复树中，但正文会被隐藏。
+      failure: 删除评论失败
+      title: 删除这条评论？
+    description: 站长后台，可按分区、状态与关键词筛选评论，并查看修改历史。
+    empty: 没有匹配的评论
+    fetch:
+      failure: 获取评论管理列表失败
+    history:
+      empty: 暂无编辑历史
+      failure: 获取编辑历史失败
+      title: 编辑历史
+    id: 评论 ID
+    item: 内容 ID
+    loading: 载入中
+    replyTo: 回复
+    reset: 重置筛选
+    search: 搜索
+    searchPlaceholder: 搜索标题、内容、昵称、邮箱
+    section: 分区
+    sections:
+      all: 全部分区
+    state: 状态
+    states:
+      active: 正常
+      all: 全部状态
+      deleted: 已删除
+    title: 评论管理
+    unauthorized: 仅站点作者可访问此页面
   verify:
     answer: 答案
     failure: 人机校验失败
