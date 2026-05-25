@@ -37,7 +37,7 @@ jobs:
     - name: Validate Environment Variables
       run: |
         set -eu
-        for name in SITE PASS_KEY GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET; do
+        for name in SITE PASS_KEY GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET AUTHOR_ID; do
           if ! grep -qE "^${name}=.+" .env; then
             echo "::error title=Missing ENV secret::${name} is missing from the repository secret ENV."
             exit 1
@@ -50,6 +50,9 @@ jobs:
         DATABASE_NAME: ${{ secrets.CLOUDFLARE_DATABASE_NAME }}
         DATABASE_ID: ${{ secrets.CLOUDFLARE_DATABASE_ID }}
       run: |
+        set -a
+        . ./.env
+        set +a
         envsubst < wrangler.example.toml > wrangler.toml
 
     - name: Install dependencies
