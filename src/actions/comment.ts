@@ -7,15 +7,52 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { Comment, CommentHistory, Drifter, Email, Notification, PushSubscription } from "$db/schema";
 import config, { turnstile, oauth, push, email } from "$config";
 import remark from "$lib/remark";
-import { enhash, Token } from "$lib/token";
+import { AESEncryption, enhash, Token } from "$lib/token";
 import { render } from "$lib/email";
 import sendEmail from "$lib/email/util";
 import sendPush from "$lib/push";
 import i18nit from "$i18n";
 
-const env = import.meta.env;
+type HumanChallenge = {
+	answer: number;
+	expires: number;
+	nonce: string;
+};
+
+function encodeChallenge(challenge: HumanChallenge) {
+	const encrypted = AESEncryption.encrypt(new TextEncoder().encode(JSON.stringify(challenge)));
+	if (!encrypted) throw new ActionError({ code: "INTERNAL_SERVER_ERROR" });
+	return Buffer.from(encrypted).toString("base64url");
+}
+
+function verifyChallenge(token: string, answer: string) {
+	try {
+		const decrypted = AESEncryption.decrypt(Buffer.from(token, "base64url"));
+		if (!decrypted) return false;
+
+		const challenge = JSON.parse(new TextDecoder().decode(decrypted)) as HumanChallenge;
+		if (challenge.expires < Date.now()) return false;
+
+		return String(challenge.answer) === answer.trim();
+	} catch (_) {
+		return false;
+	}
+}
 
 export const comment = {
+	challenge: defineAction({
+		handler: async () => {
+			const left = Math.floor(Math.random() * 8) + 2;
+			const right = Math.floor(Math.random() * 8) + 2;
+			const answer = left + right;
+
+			return {
+				question: `${left} + ${right} = ?`,
+				token: encodeChallenge({ answer, expires: Date.now() + 5 * 60 * 1000, nonce: enhash(`${left}:${right}`).substring(0, 12) })
+			};
+		}
+	}),
+
 	// Action to create a new comment or edit an existing one
 	create: defineAction({
 		input: z.object({
@@ -31,13 +68,15 @@ export const comment = {
 					nickname: z.string().nullish(), // Nickname for unauthenticated users
 					email: z.string().email().nullish(), // Email for unauthenticated users
 					homepage: z.string().url().nullish(), // Homepage for unauthenticated users
-					captcha: z.string().nullish() // CAPTCHA token for unauthenticated users
+					captcha: z.string().nullish(), // CAPTCHA token for unauthenticated users
+					captchaAnswer: z.string().nullish() // CAPTCHA answer for unauthenticated users
 				})
 				.optional()
 		}),
 		handler: async ({ locale, section, item, reply, content, link, push: subscription, passer }, { cookies, request, locals, site }) => {
 			const t = i18nit(locale, "email");
 			const tIndex = i18nit(locale);
+			const authorId = locals.runtime.env.AUTHOR_ID ?? null;
 
 			// Check if the target entry exists
 			const entry = await getEntry(section as any, item);
@@ -54,21 +93,10 @@ export const comment = {
 			const drifter: string | undefined = oauth.length ? (await Token.check(cookies, "passport"))?.visa : undefined;
 
 			if (!drifter) {
-				if (turnstile && passer?.captcha && passer.nickname?.trim() && passer.email?.trim()) {
-					const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							secret: env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
-							response: passer.captcha,
-							remoteip: ip
-						})
-					});
-
-					const result: { success: boolean } = await response.json();
-					if (!result.success) throw new ActionError({ code: "BAD_REQUEST" });
+				if (turnstile && passer?.captcha && passer.captchaAnswer && passer.nickname?.trim() && passer.email?.trim()) {
+					if (!verifyChallenge(passer.captcha, passer.captchaAnswer)) throw new ActionError({ code: "BAD_REQUEST" });
 				} else {
-					// If unauthenticated and Turnstile is unavailable, throw unauthorized error
+					// If unauthenticated and human verification is unavailable, throw unauthorized error
 					throw new ActionError({ code: "UNAUTHORIZED" });
 				}
 			}
@@ -212,7 +240,7 @@ export const comment = {
 								text: t("reply.text", { content: title, reply: content, link }),
 								unsubscribe: true
 							});
-						} else if (env.AUTHOR_ID && drifter !== env.AUTHOR_ID) {
+						} else if (authorId && drifter !== authorId) {
 							const Commenter = alias(Drifter, "commenter");
 
 							// Notify site author of new comment
@@ -227,7 +255,7 @@ export const comment = {
 								.from(Email)
 								.innerJoin(Drifter, eq(Email.drifter, Drifter.id))
 								.leftJoin(Commenter, drifter ? eq(Commenter.id, drifter) : sql`FALSE`)
-								.where(and(eq(Drifter.id, env.AUTHOR_ID), eq(Email.state, "verified"), eq(Email.notify, true)))
+								.where(and(eq(Drifter.id, authorId), eq(Email.state, "verified"), eq(Email.notify, true)))
 								.get();
 
 							if (!result?.email) return;
@@ -357,7 +385,7 @@ export const comment = {
 		}),
 		handler: async ({ section, item }, { locals }) => {
 			// Get the site author ID
-			const author = env.AUTHOR_ID ?? null;
+			const author = locals.runtime.env.AUTHOR_ID ?? null;
 
 			// Initialize database connection
 			const db = drizzle(locals.runtime.env.DB);

@@ -12,7 +12,9 @@ const icons = {
 } as const;
 
 /** Type definition for a tip object */
-type Tip = { type: keyof typeof icons; content: string };
+type Tip = { id: number; type: keyof typeof icons; content: string };
+
+let nextTipId = 0;
 
 /** Global reactive store containing array of active tips */
 const tips = writable<Tip[]>([]);
@@ -21,7 +23,7 @@ const tips = writable<Tip[]>([]);
  * Remove a specific tip from the active tips list
  * @param tip - The tip object to remove
  */
-const Close = (tip: Tip) => tips.update(list => list.filter(item => (item !== tip ? item : undefined)));
+const Close = (tip: Tip) => tips.update(list => list.filter(item => item.id !== tip.id));
 
 /**
  * Public API function to display a new tip
@@ -30,7 +32,7 @@ const Close = (tip: Tip) => tips.update(list => list.filter(item => (item !== ti
  * @param content - Text content to display in the tip
  */
 export function pushTip(type: keyof typeof icons, content: string): void {
-	const tip = { type, content };
+	const tip = { id: nextTipId++, type, content };
 
 	// Add tip to the reactive store (triggers UI update)
 	tips.update(list => [...list, tip]);
@@ -40,15 +42,9 @@ export function pushTip(type: keyof typeof icons, content: string): void {
 }
 </script>
 
-<script lang="ts">
-	import { flip } from "svelte/animate";
-	import { fly } from "svelte/transition";
-	import { circInOut } from "svelte/easing";
-</script>
-
 <figure class="fixed top-0 start-0 w-full h-full flex flex-col pe-5 z-5000 pointer-events-none overflow-hidden">
-	{#each $tips as tip (tip)}
-		<section animate:flip={{ duration: 200, easing: circInOut }} transition:fly={{ y: -100, opacity: 0, duration: 200, easing: circInOut }} class="relative flex items-center gap-2 ms-auto mt-7 border-2 border-weak rounded-sm py-4 px-3 w-xs bg-background shadow-md pointer-events-auto">
+	{#each $tips as tip (tip.id)}
+		<section class="relative flex items-center gap-2 ms-auto mt-7 border-2 border-weak rounded-sm py-4 px-3 w-xs bg-background shadow-md pointer-events-auto">
 			<Icon name={icons[tip.type]} />
 			<p>{tip.content}</p>
 			<span class="ms-auto"><button onclick={() => Close(tip)}><Icon name="lucide--x" /></button></span>

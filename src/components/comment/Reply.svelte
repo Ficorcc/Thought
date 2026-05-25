@@ -2,7 +2,6 @@
 import { ActionError, actions } from "astro:actions";
 import { onMount, untrack } from "svelte";
 import { slide } from "svelte/transition";
-import { Turnstile } from "svelte-turnstile";
 import remark from "$lib/remark";
 import Icon from "$components/Icon.svelte";
 import Modal from "$components/Modal.svelte";
@@ -46,8 +45,10 @@ let preview: boolean = $state(false); // Toggle between edit and preview mode
 let nickname: string | null = $state(null); // Nickname for unauthenticated users
 let email: string | null = $state(null); // Email for unauthenticated users
 let homepage: string | null = $state(null); // Homepage for unauthenticated users
-let captcha: string | undefined = $state(); // Captcha token for unauthenticated users
-let resetTurnstile: (() => void) | undefined = $state(); // Function to reset Turnstile widget
+let captcha: string | undefined = $state(); // Captcha answer for unauthenticated users
+let captchaToken: string | undefined = $state(); // Captcha token for unauthenticated users
+let captchaQuestion: string | undefined = $state(); // Captcha question for unauthenticated users
+let captchaError: boolean = $state(false); // Whether CAPTCHA failed to load or verify
 let overlength: boolean = $derived(content.length > Number(config.comment?.["max-length"])); // Content length check
 
 // Generate storage key
@@ -117,6 +118,23 @@ function insertEmoji(emoji: string) {
 	}
 }
 
+async function loadChallenge() {
+	if (context.drifter || !context.turnstile) return;
+
+	captcha = undefined;
+	captchaToken = undefined;
+	captchaError = false;
+
+	const { data, error } = await actions.comment.challenge();
+	if (error || !data) {
+		captchaError = true;
+		return;
+	}
+
+	captchaQuestion = data.question;
+	captchaToken = data.token;
+}
+
 /**
  * Create or edit comment with validation and rate limiting
  */
@@ -133,7 +151,7 @@ async function submit() {
 	let error: ActionError | undefined;
 	if (!context.drifter) {
 		// For unauthenticated users, validate captcha and nickname
-		if (!captcha) return pushTip("error", t("comment.verify.failure"));
+		if (!captchaToken || !captcha?.trim()) return pushTip("error", t("comment.verify.failure"));
 		if (!nickname?.trim()) return pushTip("warning", t("comment.nickname.empty"));
 		if (!email?.trim()) return pushTip("warning", t("email.empty"));
 		const homepageValue = homepage?.trim();
@@ -147,14 +165,10 @@ async function submit() {
 			content,
 			link: link,
 			push: context.subscription,
-			passer: { nickname, email, homepage: normalizedHomepage, captcha }
+			passer: { nickname, email, homepage: normalizedHomepage, captcha: captchaToken, captchaAnswer: captcha }
 		}));
 
-		// Only reset turnstile for top-level comments (when reply is undefined) or if there was an error
-		if (!reply || error) {
-			resetTurnstile?.();
-			captcha = undefined;
-		}
+		if (!reply && !error) await loadChallenge();
 
 		localStorage.setItem("nickname", nickname!);
 		localStorage.setItem("comment-email", email!);
@@ -206,6 +220,7 @@ async function submit() {
 				return pushTip("error", t("comment.overlength"));
 
 			case "BAD_REQUEST":
+				await loadChallenge();
 				return pushTip("error", t("comment.verify.failure"));
 
 			default:
@@ -286,6 +301,7 @@ onMount(() => {
 		nickname = localStorage.getItem("nickname");
 		email = localStorage.getItem("comment-email");
 		homepage = localStorage.getItem("comment-homepage");
+		loadChallenge();
 	}
 });
 </script>
@@ -380,7 +396,11 @@ onMount(() => {
 					<button onclick={() => (profileView = true)}><Icon name="lucide--user-round-pen" title={t("drifter.profile")} /></button>
 				{:else}
 					{#if context.turnstile}
-						<Turnstile siteKey={context.turnstile} bind:reset={resetTurnstile} on:expired={() => (captcha = undefined)} on:error={() => (captcha = undefined)} on:callback={({ detail }) => (captcha = detail.token)} />
+						<label class="inline-flex items-center gap-1.5 text-sm">
+							<span class="font-mono whitespace-nowrap">{captchaQuestion ?? t("comment.verify.progress")}</span>
+							<input type="text" inputmode="numeric" autocomplete="off" placeholder={t("comment.verify.answer")} bind:value={captcha} class="w-14 border-b border-weak bg-transparent text-center font-mono" />
+							<button type="button" onclick={loadChallenge}><Icon name="lucide--refresh-cw" title={t("comment.verify.refresh")} /></button>
+						</label>
 					{/if}
 					<button onclick={() => (reachView = true)}><Icon name="lucide--user-round" title={t("drifter.signin")} /></button>
 				{/if}
@@ -398,6 +418,8 @@ onMount(() => {
 				<button id="submit" disabled={limit > 0 || (!context.drifter && !captcha) || overlength} onclick={submit}>
 					{#if limit > 0}
 						<span class="flex gap-0.5"><Icon name="lucide--timer" /><span class="relative top-0.5 text-sm font-mono leading-none">{Math.ceil(limit)}</span></span>
+					{:else if !context.drifter && captchaError}
+						<span class="contents text-orange-600"><Icon name="lucide--shield-alert" title={t("comment.verify.failure")} /></span>
 					{:else if !context.drifter && !captcha}
 						<span class="contents text-primary"><Icon name="svg-spinners--pulse-rings-3" title={t("comment.verify.progress")} /></span>
 					{:else if overlength}

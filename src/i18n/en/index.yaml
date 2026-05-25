@@ -48,8 +48,10 @@ comment:
   success: Your thoughts have been delivered
   time: Posted at
   verify:
+    answer: Answer
     failure: Human verification failed
-    progress: Verifying automatically
+    progress: Loading verification
+    refresh: New question
 confirm: Confirm
 contents: Contents
 delete: Delete

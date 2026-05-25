@@ -40,7 +40,8 @@ const { note } = Astro.props;
 
 // Render markdown content and extract headings for TOC
 const { Content, headings, remarkPluginFrontmatter: frontmatter } = await render(note);
-const hasAside = note.data.toc || !!note.data.series;
+const outline = headings.length ? headings : undefined;
+const hasAside = !!outline || !!note.data.series;
 
 const notes = (await getCollection("note", item => !item.data.draft && (monolocale || item.id.startsWith(`${locale}/`)))).sort(
 	(a, b) => a.data.timestamp.getTime() - b.data.timestamp.getTime()
@@ -101,7 +102,7 @@ const t = i18nit(locale);
 			<div class="contents">
 				<div class="flex gap-5">
 					<section id="markdown-content" class="markdown"><Content /></section>
-					{(note.data.toc || !!note.data.series) && <TOC headings={note.data.toc ? headings : undefined} {locale} {series} />}
+					{(outline || !!note.data.series) && <TOC headings={outline} {locale} {series} />}
 				</div>
 
 				<nav aria-label="Adjacent notes" class:list={["mt-8 grid gap-3 sm:grid-cols-2", hasAside && "sm:me-[13.75rem]"]}>
@@ -137,6 +138,6 @@ const t = i18nit(locale);
 			</div>
 		</Sensitive>
 
-		<Position {locale} toc={note.data.toc} series={!!note.data.series} />
+		<Position {locale} toc={!!outline} series={!!note.data.series} />
 	</main>
 </Base>

@@ -48,8 +48,10 @@ comment:
   success: 想法已送达
   time: 发送时间
   verify:
+    answer: 答案
     failure: 人机校验失败
-    progress: 正在自动进行人机校验
+    progress: 正在生成校验题
+    refresh: 换一道题
 confirm: 确认
 contents: 目录
 delete: 删除
