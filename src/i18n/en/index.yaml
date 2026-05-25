@@ -70,6 +70,8 @@ comment:
     section: Section
     sections:
       all: All sections
+    signinDescription: Please sign in with the author account before opening the comment management dashboard.
+    switchDescription: The current account is not the site author. Please sign out first, then sign in with Ficorcc to open the comment dashboard.
     state: State
     states:
       active: Active

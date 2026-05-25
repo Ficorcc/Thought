@@ -70,6 +70,8 @@ comment:
     section: 分区
     sections:
       all: 全部分区
+    signinDescription: 请先登录站长账号，然后再进入评论管理后台。
+    switchDescription: 当前登录账号不是站长，请先退出，再使用 Ficorcc 登录进入评论管理后台。
     state: 状态
     states:
       active: 正常
