@@ -117,7 +117,11 @@ async function remove() {
 				<dt class="flex flex-col gap-0.5 min-w-0">
 					<p class="flex items-center gap-1">
 						{#if comment.nickname}
-							<b>{comment.nickname}</b>
+							{#if comment.homepage}
+								<a href={comment.homepage} target="_blank" rel="nofollow noopener noreferrer" class="font-bold hover:underline">{comment.nickname}</a>
+							{:else}
+								<b>{comment.nickname}</b>
+							{/if}
 						{:else}
 							<b class="text-weak">{t("drifter.deactivate.done")}</b>
 						{/if}
