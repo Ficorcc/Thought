@@ -12,7 +12,7 @@ html_handling = "drop-trailing-slash"
 enabled = true
 
 [vars]
-AUTHOR_ID = "${AUTHOR_ID}"
+AUTHOR_ID = "tg2PTUzMsoxhFZvd"
 
 [[d1_databases]]
 binding = "DB"
