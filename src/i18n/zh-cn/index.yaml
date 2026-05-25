@@ -140,6 +140,8 @@ navigation:
 note:
   comment: 前往想法
   empty: 暂无文记
+  next: 下一篇
+  previous: 上一篇
   series: 系列
   tag: 标签
   top: 回到顶部

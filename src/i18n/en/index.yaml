@@ -145,6 +145,8 @@ navigation:
 note:
   comment: Thoughts
   empty: No notes available
+  next: Next
+  previous: Previous
   series: Series
   tag: Tag
   top: To Top

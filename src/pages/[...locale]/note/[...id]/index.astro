@@ -40,6 +40,17 @@ const { note } = Astro.props;
 
 // Render markdown content and extract headings for TOC
 const { Content, headings, remarkPluginFrontmatter: frontmatter } = await render(note);
+const hasAside = note.data.toc || !!note.data.series;
+
+const notes = (await getCollection("note", item => !item.data.draft && (monolocale || item.id.startsWith(`${locale}/`)))).sort(
+	(a, b) => a.data.timestamp.getTime() - b.data.timestamp.getTime()
+);
+const current = notes.findIndex(item => item.id === note.id);
+const adjacentNotes = {
+	previous: current > 0 ? notes[current - 1] : undefined,
+	next: current >= 0 && current < notes.length - 1 ? notes[current + 1] : undefined
+};
+const noteUrl = (id: string) => getRelativeLocaleUrl(locale, `/note/${monolocale ? id : id.split("/").slice(1).join("/")}`);
 
 const series = note.data.series
 	? (
@@ -92,7 +103,37 @@ const t = i18nit(locale);
 					<section id="markdown-content" class="markdown"><Content /></section>
 					{(note.data.toc || !!note.data.series) && <TOC headings={note.data.toc ? headings : undefined} {locale} {series} />}
 				</div>
-				<blockquote id="comment-section"><Comments {locale} link={`${Astro.url.origin}${Astro.url.pathname}`} section="note" item={note.id} /></blockquote>
+
+				<nav aria-label="Adjacent notes" class:list={["mt-8 grid gap-3 sm:grid-cols-2", hasAside && "sm:me-[13.75rem]"]}>
+					{
+						adjacentNotes.previous ? (
+							<a href={noteUrl(adjacentNotes.previous.id)} class="group flex flex-col gap-1 border-s-2 border-weak ps-3">
+								<span class="inline-flex items-center gap-1 text-sm text-secondary">
+									<Icon name="lucide--arrow-left" size={15} class="rtl:-scale-x-100" />
+									{t("note.previous")}
+								</span>
+								<strong class="link text-base">{adjacentNotes.previous.data.title}</strong>
+							</a>
+						) : (
+							<span aria-hidden="true" class="hidden sm:block" />
+						)
+					}
+					{
+						adjacentNotes.next && (
+							<a href={noteUrl(adjacentNotes.next.id)} class="group flex flex-col gap-1 border-e-2 border-weak pe-3 text-end">
+								<span class="inline-flex items-center justify-end gap-1 text-sm text-secondary">
+									{t("note.next")}
+									<Icon name="lucide--arrow-right" size={15} class="rtl:-scale-x-100" />
+								</span>
+								<strong class="link text-base">{adjacentNotes.next.data.title}</strong>
+							</a>
+						)
+					}
+				</nav>
+
+				<hr class:list={["my-2 border-b border-weak", hasAside && "sm:me-[13.75rem]"]} />
+
+				<blockquote id="comment-section" class:list={[hasAside && "sm:me-[13.75rem]"]}><Comments {locale} link={`${Astro.url.origin}${Astro.url.pathname}`} section="note" item={note.id} /></blockquote>
 			</div>
 		</Sensitive>
 
