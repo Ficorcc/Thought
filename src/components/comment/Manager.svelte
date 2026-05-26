@@ -298,7 +298,9 @@ onMount(refresh);
 						<div class="flex gap-4">
 							<button onclick={() => showHistory(comment)}><Icon name="lucide--history" title={t("comment.manage.history.title")} /></button>
 							<button onclick={() => ((focusComment = comment), (deleteView = true))}><Icon name="lucide--trash" title={t("comment.manage.delete.title")} /></button>
-							<button onclick={() => ((focusComment = comment), (purgeView = true))}><Icon name="lucide--trash-2" title={t("comment.manage.purge.title")} /></button>
+							{#if comment.deleted}
+								<button onclick={() => ((focusComment = comment), (purgeView = true))}><Icon name="lucide--trash-2" title={t("comment.manage.purge.title")} /></button>
+							{/if}
 						</div>
 					</footer>
 				</li>

@@ -64,7 +64,7 @@ comment:
     item: 内容 ID
     loading: 载入中
     purge:
-      description: 彻底删除会移除这条评论及其所有回复，并且不再显示在后台列表中。
+      description: 彻底删除只会移除当前这条已删除评论，本身不再显示在后台列表中，原有回复会保留。
       failure: 彻底删除评论失败
       success: 评论已彻底删除
       title: 彻底删除这条评论？

@@ -64,7 +64,7 @@ comment:
     item: Content ID
     loading: Loading
     purge:
-      description: Permanent deletion removes this comment and all of its replies, and it will no longer appear in the manager list.
+      description: Permanent deletion removes only this already deleted comment. It disappears from the manager list, while existing replies stay intact.
       failure: Failed to permanently delete comment
       success: Comment permanently deleted
       title: Permanently delete this comment?
