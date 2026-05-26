@@ -54,6 +54,8 @@ let focusComment = $state<CommentRecord | null>(null);
 
 let deleteView = $state(false);
 let deleting = $state(false);
+let purgeView = $state(false);
+let purging = $state(false);
 
 function displayName(comment: CommentRecord) {
 	return comment.name || comment.nickname || t("drifter.deactivate.done");
@@ -117,6 +119,23 @@ async function remove() {
 	await refresh();
 }
 
+async function purge() {
+	if (!focusComment) return;
+
+	purging = true;
+	const { error } = await actions.comment.purge(focusComment.id);
+	purging = false;
+
+	if (error) {
+		pushTip("error", t("comment.manage.purge.failure"));
+		return;
+	}
+
+	pushTip("success", t("comment.manage.purge.success"));
+	purgeView = false;
+	await refresh();
+}
+
 function reset() {
 	query = "";
 	section = "all";
@@ -172,6 +191,26 @@ onMount(refresh);
 		<div class="self-end flex gap-4">
 			<button class="form-button" onclick={() => (deleteView = false)}>{t("cancel")}</button>
 			<button class="form-button bg-red-500 text-white" disabled={deleting} onclick={remove}>{t("confirm")}</button>
+		</div>
+	</div>
+</Modal>
+
+<Modal bind:open={purgeView}>
+	<div class="flex flex-col gap-5 min-w-[min(30rem,80vw)] max-w-[80vw]">
+		<div class="flex flex-col gap-2">
+			<h2>{t("comment.manage.purge.title")}</h2>
+			<p>{t("comment.manage.purge.description")}</p>
+			{#if focusComment}
+				<div class="border border-weak rounded-sm p-3 text-sm">
+					<p class="font-bold">{displayName(focusComment)} · {focusComment.title}</p>
+					<p class="mt-2 text-secondary break-words">{focusComment.content || t("comment.removed")}</p>
+				</div>
+			{/if}
+		</div>
+
+		<div class="self-end flex gap-4">
+			<button class="form-button" onclick={() => (purgeView = false)}>{t("cancel")}</button>
+			<button class="form-button bg-red-500 text-white" disabled={purging} onclick={purge}>{t("confirm")}</button>
 		</div>
 	</div>
 </Modal>
@@ -259,6 +298,7 @@ onMount(refresh);
 						<div class="flex gap-4">
 							<button onclick={() => showHistory(comment)}><Icon name="lucide--history" title={t("comment.manage.history.title")} /></button>
 							<button onclick={() => ((focusComment = comment), (deleteView = true))}><Icon name="lucide--trash" title={t("comment.manage.delete.title")} /></button>
+							<button onclick={() => ((focusComment = comment), (purgeView = true))}><Icon name="lucide--trash-2" title={t("comment.manage.purge.title")} /></button>
 						</div>
 					</footer>
 				</li>

@@ -1,7 +1,7 @@
 import { ActionError, defineAction } from "astro:actions";
 import { getEntry } from "astro:content";
 import { z } from "astro:schema";
-import { and, desc, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Comment, CommentHistory, Drifter, Email, Notification, PushSubscription } from "$db/schema";
@@ -68,6 +68,36 @@ async function resolveCommentTarget(section: ManagedSection, item: string, local
 		url: `${prefix}/${section}/${slug}`,
 		locale: targetLocale
 	};
+}
+
+async function collectCommentBranch(db: ReturnType<typeof drizzle>, rootId: string) {
+	const comments = await db.select({ id: Comment.id, reply: Comment.reply }).from(Comment);
+	const children = new Map<string, string[]>();
+
+	for (const comment of comments) {
+		if (!comment.reply) continue;
+
+		const branch = children.get(comment.reply) ?? [];
+		branch.push(comment.id);
+		children.set(comment.reply, branch);
+	}
+
+	const ids: string[] = [];
+	const queue = [rootId];
+	const seen = new Set<string>();
+
+	while (queue.length) {
+		const current = queue.shift()!;
+		if (seen.has(current)) continue;
+		seen.add(current);
+		ids.push(current);
+
+		for (const child of children.get(current) ?? []) {
+			queue.push(child);
+		}
+	}
+
+	return ids;
 }
 
 export const comment = {
@@ -383,6 +413,24 @@ export const comment = {
 				.update(Comment)
 				.set({ deleted: true })
 				.where(authorId && drifter === authorId ? eq(Comment.id, id) : and(eq(Comment.id, id), eq(Comment.drifter, drifter)));
+		}
+	}),
+
+	purge: defineAction({
+		input: z.string(),
+		handler: async (id, { cookies, locals }) => {
+			if (!oauth.length) throw new ActionError({ code: "FORBIDDEN" });
+
+			const drifter = (await Token.check(cookies, "passport"))?.visa;
+			const authorId = locals.runtime.env.AUTHOR_ID ?? null;
+			if (!drifter || !authorId || drifter !== authorId) throw new ActionError({ code: "UNAUTHORIZED" });
+
+			const db = drizzle(locals.runtime.env.DB);
+			const ids = await collectCommentBranch(db, id);
+			if (!ids.length) return;
+
+			await db.delete(Notification).where(inArray(Notification.comment, ids));
+			await db.delete(Comment).where(inArray(Comment.id, ids));
 		}
 	}),
 

@@ -63,6 +63,11 @@ comment:
     id: Comment ID
     item: Content ID
     loading: Loading
+    purge:
+      description: Permanent deletion removes this comment and all of its replies, and it will no longer appear in the manager list.
+      failure: Failed to permanently delete comment
+      success: Comment permanently deleted
+      title: Permanently delete this comment?
     replyTo: Reply to
     reset: Reset
     search: Search
