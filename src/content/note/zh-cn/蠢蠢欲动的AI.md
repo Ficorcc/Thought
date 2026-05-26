@@ -1,8 +1,7 @@
 ---
 title: 蠢蠢欲动的AI
 id: Restless AI
-timestamp:
-  - 2026-05-26 11:37:00
+timestamp: 2026-05-26 11:37:00+08:00
 series: 技术
 tags:
   - 博客
