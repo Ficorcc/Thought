@@ -35,7 +35,7 @@ import reading from "./src/lib/reading";
 
 import siteConfig from "./site.config";
 
-const site = process.env.SITE ?? "https://thought.ficor.workers.dev";
+const site = process.env.SITE ?? "https://linglingtu.com";
 
 // https://astro.build/config
 export default defineConfig({
