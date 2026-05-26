@@ -4,7 +4,7 @@ const env = import.meta.env ?? {};
 
 const config = siteConfig({
 	title: "Ficor's Blog",
-	prologue: "在路上的思绪与脚印",
+	prologue: "一个重新站起来，准备出发的人\nDo one Thing at a Time，and Do Well.",
 	author: {
 		name: "Ficor",
 		email: "ficor@qq.com",
