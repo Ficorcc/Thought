@@ -21,8 +21,8 @@ const config = siteConfig({
 		defaultLocale: "zh-cn"
 	},
 	pagination: {
-		note: 10,
-		guide: 10,
+		note: 16,
+		guide: 16,
 		jotting: 24
 	},
 	header: {
@@ -65,8 +65,8 @@ const config = siteConfig({
 			{ label: "GitHub", icon: "simple-icons--github", url: "https://github.com/Ficorcc" },
 			{ label: "Mastodon", icon: "simple-icons--mastodon", url: "https://mastodon.social/@ficor" },
 			{ label: "Email", icon: "lucide--mail", url: "mailto:ficor@qq.com" },
-			{ label: "QQ", icon: "simple-icons--qq", url: "https://qm.qq.com/" },
-			{ label: "WeChat", icon: "simple-icons--wechat", url: "weixin://" }
+			{ label: "316160777", icon: "simple-icons--qq", url: "https://qm.qq.com/" },
+			{ label: "ficorcc", icon: "simple-icons--wechat", url: "weixin://" }
 		]
 	},
 	home: {

@@ -127,20 +127,24 @@ $effect(() => {
 	<article class="flex flex-col gap-5 grow">
 		{#each list as note (note.id)}
 			<section animate:flip={{ duration: 150 }} class="flex flex-col">
-				<div class="*:inline *:align-middle font-bold">
-					{#if note.data.top > 0}<Icon name="lucide--flag-triangle-right" class="rtl:-scale-x-100" />{/if}
-					{#if note.data.sensitive}<Icon name="lucide--siren" title={t("sensitive.icon")} />{/if}
-					{#if note.data.series}
-						<button onclick={() => chooseSeries(note.data.series, true)}>{note.data.series}</button>
-						<span aria-hidden="true">|</span>
+				<div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+					<div class="min-w-0 *:inline *:align-middle font-bold">
+						{#if note.data.top > 0}<Icon name="lucide--flag-triangle-right" class="rtl:-scale-x-100" />{/if}
+						{#if note.data.sensitive}<Icon name="lucide--siren" title={t("sensitive.icon")} />{/if}
+						{#if note.data.series}
+							<button onclick={() => chooseSeries(note.data.series, true)}>{note.data.series}</button>
+							<span aria-hidden="true">|</span>
+						{/if}
+						<a href={note.url} class="link break-words">{note.data.title}</a>
+					</div>
+					{#if note.data.tags?.length}
+						<span class="inline-flex flex-wrap gap-x-2 gap-y-1 sm:max-w-[42%] sm:justify-end sm:text-right shrink-0">
+							{#each note.data.tags as tag}
+								<button onclick={() => switchTag(tag, true)} class="text-secondary text-sm">#{tag}</button>
+							{/each}
+						</span>
 					{/if}
-					<a href={note.url} class="link">{note.data.title}</a>
 				</div>
-				<span class="inline-flex gap-1 flex-wrap">
-					{#each note.data.tags as tag}
-						<button onclick={() => switchTag(tag, true)} class="text-secondary text-sm">#{tag}</button>
-					{/each}
-				</span>
 				<time datetime={note.data.timestamp.toISOString()} class="mt-1 font-mono text-[0.65rem] text-secondary">{Time.toString(note.data.timestamp)}</time>
 			</section>
 		{:else}
