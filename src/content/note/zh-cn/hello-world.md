@@ -10,8 +10,6 @@ tags:
 
 Welcome to WordPress. This is your first post. Edit or delete it, then start writing!
 
-&nbsp;
-
 “欢迎使用WordPress。这是您的第一篇文章。”
 
 好熟悉的一句话。
