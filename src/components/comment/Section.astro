@@ -1,6 +1,5 @@
 ---
 import { oauth, turnstile, push, email } from "$config";
-import Comments from "./Section.svelte";
 
 interface Props {
 	locale: string;
@@ -11,7 +10,22 @@ interface Props {
 }
 
 const { locale, link, section, item, compact } = Astro.props;
+const props = JSON.stringify({ locale, link, section, item, oauth, turnstile, push, email, compact });
 ---
 
 <!-- Wrapping component to inject server-side environment variables -->
-<Comments client:visible {locale} {link} {section} {item} {oauth} {turnstile} {push} {email} {compact} />
+<div data-comment-root data-comment-props={props}></div>
+
+<script>
+	import { mount } from "svelte";
+	import Comments from "./Section.svelte";
+
+	document.querySelectorAll<HTMLElement>("[data-comment-root]").forEach(target => {
+		if (target.dataset.commentMounted) return;
+
+		target.dataset.commentMounted = "true";
+		const props = JSON.parse(target.dataset.commentProps || "{}");
+		target.textContent = "";
+		mount(Comments, { target, props });
+	});
+</script>

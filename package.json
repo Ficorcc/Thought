@@ -45,11 +45,11 @@
 		"prepare": "pnpm run types && husky"
 	},
 	"dependencies": {
-		"@astrojs/cloudflare": "^12.6.12",
-		"@astrojs/markdown-remark": "^6.3.10",
-		"@astrojs/mdx": "^4.3.13",
-		"@astrojs/sitemap": "^3.7.0",
-		"@astrojs/svelte": "^7.2.5",
+		"@astrojs/cloudflare": "^13.6.1",
+		"@astrojs/markdown-remark": "^7.2.0",
+		"@astrojs/mdx": "^6.0.2",
+		"@astrojs/sitemap": "^3.7.3",
+		"@astrojs/svelte": "^8.1.2",
 		"@block65/webcrypto-web-push": "^1.0.2",
 		"@hbsnow/rehype-sectionize": "^1.0.7",
 		"@iconify-json/fa6-brands": "^1.2.6",
@@ -68,7 +68,7 @@
 		"@tuyuritio/remark-spoiler": "^0.0.2",
 		"@tuyuritio/shiki-code-copy": "^1.0.0",
 		"arctic": "^3.7.0",
-		"astro": "^5.17.3",
+		"astro": "^6.4.4",
 		"dotenv": "^17.3.1",
 		"drizzle-orm": "^0.45.1",
 		"feed": "^5.2.0",
@@ -122,7 +122,7 @@
 		"sharp": "^0.34.5",
 		"tsx": "^4.21.0",
 		"unifont": "^0.7.4",
-		"wrangler": "^4.67.0"
+		"wrangler": "^4.98.0"
 	},
 	"lint-staged": {
 		"*.{js,ts,json,jsonc,css,svelte,astro}": [

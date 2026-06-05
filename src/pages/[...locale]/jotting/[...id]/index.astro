@@ -60,12 +60,21 @@ const t = i18nit(locale);
 			<hr class="border-b border-weak" />
 		</header>
 
-		<Sensitive {locale} back={getRelativeLocaleUrl(locale, "/jotting")} sensitive={jotting.data.sensitive} client:load>
-			<div class="contents">
-				<section id="markdown-content" class="markdown"><Content /></section>
-				<blockquote id="comment-section"><Comments {locale} link={`${Astro.url.origin}${Astro.url.pathname}`} section="jotting" item={jotting.id} /></blockquote>
-			</div>
-		</Sensitive>
+		{
+			jotting.data.sensitive ? (
+				<Sensitive {locale} back={getRelativeLocaleUrl(locale, "/jotting")} sensitive={jotting.data.sensitive} client:load>
+					<div class="contents">
+						<section id="markdown-content" class="markdown"><Content /></section>
+					</div>
+				</Sensitive>
+			) : (
+				<div class="contents">
+					<section id="markdown-content" class="markdown"><Content /></section>
+				</div>
+			)
+		}
+
+		<blockquote id="comment-section"><Comments {locale} link={`${Astro.url.origin}${Astro.url.pathname}`} section="jotting" item={jotting.id} /></blockquote>
 
 		<Position {locale} />
 	</main>

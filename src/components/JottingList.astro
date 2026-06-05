@@ -1,0 +1,190 @@
+---
+import config from "$config";
+import i18nit from "$i18n";
+
+type JottingItem = {
+	id: string;
+	url: string;
+	data: {
+		title: string;
+		timestamp: Date;
+		tags?: string[];
+		sensitive?: boolean;
+		top?: number;
+	};
+};
+
+const { locale, jottings, tags: tagList, pathname, search } = Astro.props as {
+	locale: string;
+	jottings: JottingItem[];
+	tags: string[];
+	pathname: string;
+	search: string;
+};
+
+const t = i18nit(locale);
+const size = config.pagination?.jotting || 24;
+const searchParams = new URLSearchParams(search);
+const selectedTags = searchParams.getAll("tag");
+
+const filtered = jottings
+	.filter(jotting => selectedTags.every(tag => jotting.data.tags?.includes(tag)))
+	.sort((a, b) => (b.data.top ?? 0) - (a.data.top ?? 0) || b.data.timestamp.getTime() - a.data.timestamp.getTime());
+
+const pages = Math.max(1, Math.ceil(filtered.length / size));
+const pageParam = Number(searchParams.get("page"));
+const page = Math.max(1, Math.min(Number.isNaN(pageParam) || pageParam < 1 ? 1 : Math.floor(pageParam), pages));
+const list = filtered.slice((page - 1) * size, page * size);
+
+function withParams(update: (params: URLSearchParams) => void) {
+	const params = new URLSearchParams(searchParams);
+	update(params);
+	const query = params.toString();
+
+	return `${pathname}${query ? `?${query}` : ""}`;
+}
+
+function tagUrl(value: string, force = false) {
+	return withParams(params => {
+		params.delete("page");
+		params.delete("tag");
+
+		const next = force || !selectedTags.includes(value) ? Array.from(new Set([...selectedTags, value])) : selectedTags.filter(tag => tag !== value);
+		for (const tag of next) params.append("tag", tag);
+	});
+}
+
+function pageUrl(value: number) {
+	return withParams(params => {
+		value > 1 ? params.set("page", String(value)) : params.delete("page");
+	});
+}
+
+function paginationItems() {
+	if (pages <= 7) return Array.from({ length: pages }, (_, index) => index + 1);
+
+	const middle = Array.from({ length: Math.min(5, pages - 2) }, (_, index) => index + Math.max(2, Math.min(pages - 5, page - 2)));
+	return [1, page > 4 ? "start" : null, ...middle, page < pages - 3 ? "end" : null, pages].filter(Boolean);
+}
+---
+
+<div class="flex flex-col-reverse sm:flex-row gap-10 grow">
+	<article class="flex flex-col grow">
+		<header class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5">
+			{
+				list.length > 0 ? (
+					list.map(jotting => (
+						<section class="flex flex-col justify-center border-b border-dashed border-b-weak pb-1">
+							<span class="flex items-center gap-1">
+								{(jotting.data.top ?? 0) > 0 && <i class="iconify lucide--flag-triangle-right rtl:-scale-x-100" aria-hidden="true"></i>}
+								{jotting.data.sensitive && <i class="iconify lucide--siren" aria-label={t("sensitive.icon")} title={t("sensitive.icon")}></i>}
+								<a data-no-swup href={jotting.url} class="leading-normal text-primary font-semibold link truncate">{jotting.data.title}</a>
+							</span>
+							{!!jotting.data.tags?.length && <span class="flex gap-1">{jotting.data.tags.map(tag => <a data-no-swup href={tagUrl(tag, true)} class="text-[0.825rem] text-secondary">#{tag}</a>)}</span>}
+						</section>
+					))
+				) : (
+					<div class="col-span-2 pt-[10vh] text-center text-secondary font-bold text-xl">{t("jotting.empty")}</div>
+				)
+			}
+		</header>
+
+		{
+			pages > 1 && (
+				<nav aria-label="Pagination" class="pagination">
+					<a data-no-swup aria-label="Previous page" class:list={[page === 1 && "disabled"]} href={pageUrl(Math.max(1, page - 1))}>{"<"}</a>
+					{paginationItems().map(item =>
+						typeof item === "number" ? (
+							<a data-no-swup aria-current={item === page ? "page" : undefined} class:list={[item === page && "location"]} href={pageUrl(item)}>{item}</a>
+						) : (
+							<span aria-hidden="true">...</span>
+						)
+					)}
+					<a data-no-swup aria-label="Next page" class:list={[page === pages && "disabled"]} href={pageUrl(Math.min(pages, page + 1))}>{">"}</a>
+				</nav>
+			)
+		}
+	</article>
+
+	<aside class="sm:basis-50 shrink-0 flex flex-col gap-5">
+		<section>
+			<h4>{t("jotting.tag")}</h4>
+			<p>
+				{tagList.map(tag => <a data-no-swup class:list={[selectedTags.includes(tag) && "selected"]} href={tagUrl(tag)}>{tag}</a>)}
+			</p>
+		</section>
+	</aside>
+</div>
+
+<style>
+	aside {
+		section {
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+
+			p {
+				display: flex;
+				flex-flow: row wrap;
+				gap: 5px;
+
+				a {
+					border-bottom: 1px solid var(--primary-color);
+					padding: 0 0.35rem;
+					font-size: 0.9rem;
+					transition:
+						color 0.1s ease-in-out,
+						background-color 0.1s ease-in-out;
+
+					&.selected {
+						color: var(--background-color);
+						background-color: var(--primary-color);
+					}
+
+					@media (min-width: 640px) {
+						&:hover {
+							color: var(--background-color);
+							background-color: var(--primary-color);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	.pagination {
+		position: sticky;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		margin-top: 2rem;
+		padding-bottom: 0.25rem;
+		color: var(--weak-color);
+		background-color: var(--background-color);
+		font-family: var(--font-mono);
+		font-size: 0.875rem;
+
+		a,
+		span {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 30px;
+			height: 30px;
+			border-bottom: 2px solid;
+			transition: color 0.15s ease-in-out;
+		}
+
+		a:hover,
+		a.location {
+			color: var(--primary-color);
+		}
+
+		a.disabled {
+			pointer-events: none;
+			opacity: 0.35;
+		}
+	}
+</style>

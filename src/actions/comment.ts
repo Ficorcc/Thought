@@ -1,6 +1,7 @@
 import { ActionError, defineAction } from "astro:actions";
 import { getEntry } from "astro:content";
 import { z } from "astro:schema";
+import { env, waitUntil } from "cloudflare:workers";
 import { and, desc, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -45,7 +46,7 @@ function resolveCommentLocale(item: string) {
 	if (monolocale) return config.i18n.defaultLocale;
 
 	const [locale] = item.split("/");
-	return config.i18n.locales.includes(locale) ? locale : config.i18n.defaultLocale;
+	return (config.i18n.locales as readonly string[]).includes(locale) ? locale : config.i18n.defaultLocale;
 }
 
 async function resolveCommentTarget(section: ManagedSection, item: string, locale: string) {
@@ -104,10 +105,10 @@ export const comment = {
 				})
 				.optional()
 		}),
-		handler: async ({ locale, section, item, reply, content, link, push: subscription, passer }, { cookies, request, locals, site }) => {
+		handler: async ({ locale, section, item, reply, content, link, push: subscription, passer }, { cookies, request, site }) => {
 			const t = i18nit(locale, "email");
 			const tIndex = i18nit(locale);
-			const authorId = locals.runtime.env.AUTHOR_ID ?? null;
+			const authorId = env.AUTHOR_ID ?? null;
 
 			// Check if the target entry exists
 			const entry = await getEntry(section as any, item);
@@ -134,7 +135,7 @@ export const comment = {
 
 			// Apply rate limiting to prevent spam
 			// Use drifter ID for authenticated users, clientAddress for unauthenticated users
-			const { success } = await locals.runtime.env.COMMENT_LIMIT.limit({ key: drifter ?? ip ?? "unknown" });
+			const { success } = await env.COMMENT_LIMIT.limit({ key: drifter ?? ip ?? "unknown" });
 			if (!success) throw new ActionError({ code: "TOO_MANY_REQUESTS" });
 
 			if (content.length > Number(config.comment?.["max-length"])) throw new ActionError({ code: "CONTENT_TOO_LARGE" });
@@ -143,7 +144,7 @@ export const comment = {
 			const id = enhash(content + reply).substring(0, 8);
 
 			// Initialize database connection
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 
 			// Insert the new comment
 			await db.insert(Comment).values({
@@ -159,8 +160,8 @@ export const comment = {
 				content
 			});
 
-			// The `ctx.waitUntil()` method is specific to Cloudflare Workers.
-			locals.runtime.ctx.waitUntil(
+			// Keep notifications out of the response path.
+			waitUntil(
 				Promise.all([
 					// Store push subscription for future notifications
 					(async () => {
@@ -321,7 +322,7 @@ export const comment = {
 			id: z.string(), // The comment ID to edit
 			content: z.string() // New content for the comment
 		}),
-		handler: async ({ id, content }, { cookies, locals }) => {
+		handler: async ({ id, content }, { cookies }) => {
 			// Check if authenticated commenting is enabled
 			if (!oauth.length) throw new ActionError({ code: "FORBIDDEN" });
 
@@ -330,7 +331,7 @@ export const comment = {
 			if (!drifter) throw new ActionError({ code: "UNAUTHORIZED" });
 
 			// Initialize database connection
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 
 			// Store the original comment in the history table
 			const inserted = await db
@@ -365,17 +366,17 @@ export const comment = {
 	// Action to delete a comment (marks it as edited by itself)
 	delete: defineAction({
 		input: z.string(), // The comment ID to delete
-		handler: async (id, { cookies, locals }) => {
+		handler: async (id, { cookies }) => {
 			// Check if authenticated commenting is enabled
 			if (!oauth.length) throw new ActionError({ code: "FORBIDDEN" });
 
 			// Verify user authentication
 			const drifter = (await Token.check(cookies, "passport"))?.visa;
-			const authorId = locals.runtime.env.AUTHOR_ID ?? null;
+			const authorId = env.AUTHOR_ID ?? null;
 			if (!drifter) throw new ActionError({ code: "UNAUTHORIZED" });
 
 			// Initialize database connection
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 
 			// Mark the comment as deleted by setting edit field to its own ID
 			// This creates a self-reference indicating deletion while preserving the record
@@ -388,14 +389,14 @@ export const comment = {
 
 	purge: defineAction({
 		input: z.string(),
-		handler: async (id, { cookies, locals }) => {
+		handler: async (id, { cookies }) => {
 			if (!oauth.length) throw new ActionError({ code: "FORBIDDEN" });
 
 			const drifter = (await Token.check(cookies, "passport"))?.visa;
-			const authorId = locals.runtime.env.AUTHOR_ID ?? null;
+			const authorId = env.AUTHOR_ID ?? null;
 			if (!drifter || !authorId || drifter !== authorId) throw new ActionError({ code: "UNAUTHORIZED" });
 
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 			const target = await db.select({ id: Comment.id, reply: Comment.reply, deleted: Comment.deleted }).from(Comment).where(eq(Comment.id, id)).get();
 			if (!target?.deleted) throw new ActionError({ code: "BAD_REQUEST" });
 
@@ -408,9 +409,9 @@ export const comment = {
 	// Action to retrieve the edit history of a comment
 	history: defineAction({
 		input: z.string(), // The comment ID to get history for
-		handler: async (id, { locals }) => {
+		handler: async id => {
 			// Initialize database connection
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 
 			// Fetch all history entries for this comment
 			const history = await db
@@ -434,12 +435,12 @@ export const comment = {
 			section: z.string(), // The section this comment belongs to
 			item: z.string() // The item ID to get comments for
 		}),
-		handler: async ({ section, item }, { locals }) => {
+		handler: async ({ section, item }) => {
 			// Get the site author ID
-			const author = locals.runtime.env.AUTHOR_ID ?? null;
+			const author = env.AUTHOR_ID ?? null;
 
 			// Initialize database connection
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 
 			// Fetch all comments with user information
 			const comments = await db
@@ -532,12 +533,12 @@ export const comment = {
 			section: z.enum(["all", "note", "guide", "jotting", "preface"]).default("all"),
 			state: z.enum(["all", "active", "deleted"]).default("all")
 		}),
-		handler: async ({ locale, keyword, section, state }, { cookies, locals }) => {
-			const authorId = locals.runtime.env.AUTHOR_ID ?? null;
+		handler: async ({ locale, keyword, section, state }, { cookies }) => {
+			const authorId = env.AUTHOR_ID ?? null;
 			const drifter = (await Token.check(cookies, "passport"))?.visa;
 			if (!authorId || drifter !== authorId) throw new ActionError({ code: "UNAUTHORIZED" });
 
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 			const conditions = [];
 
 			if (section !== "all") conditions.push(eq(Comment.section, section));

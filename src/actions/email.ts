@@ -1,6 +1,7 @@
 import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro:schema";
 import { getRelativeLocaleUrl } from "astro:i18n";
+import { env, waitUntil } from "cloudflare:workers";
 import { and, eq, ne } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { email as enabled } from "$config";
@@ -11,13 +12,72 @@ import { AESEncryption, Token } from "$lib/token";
 import i18nit from "$i18n";
 
 export const email = {
+	confirm: defineAction({
+		input: z.string(),
+		handler: async ticket => {
+			const claim = AESEncryption.decrypt(new Uint8Array(Buffer.from(ticket, "base64url")));
+			if (!claim) return "invalid";
+
+			const db = drizzle(env.DB);
+
+			const timestamp = new DataView(claim.buffer).getBigUint64(0, false);
+			const identity = new TextDecoder().decode(claim.slice(8));
+			const [drifter, address] = identity.split("|");
+			if (!drifter || !address) return "invalid";
+
+			const ExpirationDuration = 5 * 60 * 1000;
+			if (BigInt(Date.now()) - timestamp > BigInt(ExpirationDuration)) return "expired";
+
+			const result = await db
+				.update(Email)
+				.set({ state: "verified" })
+				.where(and(eq(Email.drifter, drifter), eq(Email.address, address), eq(Email.state, "pending")))
+				.returning();
+
+			if (result.length === 0) {
+				const result = await db
+					.select({ state: Email.state })
+					.from(Email)
+					.where(and(eq(Email.drifter, drifter), eq(Email.address, address)))
+					.get();
+
+				if (!result) return "invalid";
+				return result.state === "verified" ? "already" : "invalid";
+			}
+
+			return "success";
+		}
+	}),
+
+	unsubscribe: defineAction({
+		input: z.string(),
+		handler: async pass => {
+			const claim = AESEncryption.decrypt(new Uint8Array(Buffer.from(pass, "base64url")));
+			if (!claim) return "invalid";
+
+			const db = drizzle(env.DB);
+
+			const identity = new TextDecoder().decode(claim);
+			const [drifter, address] = identity.split("|");
+			if (!drifter || !address) return "invalid";
+
+			const result = await db
+				.update(Email)
+				.set({ notify: false })
+				.where(and(eq(Email.drifter, drifter), eq(Email.address, address), eq(Email.notify, true)))
+				.returning();
+
+			return result.length === 0 ? "invalid" : "success";
+		}
+	}),
+
 	// Action to initiate email verification process
 	verify: defineAction({
 		input: z.object({
 			locale: z.string(), // locale code for generating the link
 			address: z.string().email().optional() // email address to verify, left empty to resend
 		}),
-		handler: async ({ locale, address }, { cookies, locals, site }) => {
+		handler: async ({ locale, address }, { cookies, site }) => {
 			// Check if email feature is enabled
 			if (!enabled) throw new ActionError({ code: "FORBIDDEN" });
 
@@ -26,11 +86,11 @@ export const email = {
 			if (!drifter) throw new ActionError({ code: "UNAUTHORIZED" });
 
 			// Apply rate limiting to prevent spam
-			const { success } = await locals.runtime.env.EMAIL_LIMIT.limit({ key: drifter });
+			const { success } = await env.EMAIL_LIMIT.limit({ key: drifter });
 			if (!success) throw new ActionError({ code: "TOO_MANY_REQUESTS" });
 
 			// Initialize database connection
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 
 			if (address) {
 				// Insert or update email record with pending state
@@ -77,7 +137,7 @@ export const email = {
 			const t = i18nit(locale, "email");
 
 			// Send verification email
-			locals.runtime.ctx.waitUntil(
+			waitUntil(
 				sendEmail(locale, drifter, address, {
 					subject: t("verification.subject"),
 					html: render("verification", {
@@ -94,7 +154,7 @@ export const email = {
 
 	// Action to remove email record
 	remove: defineAction({
-		handler: async (_, { cookies, locals }) => {
+		handler: async (_, { cookies }) => {
 			// Check if email feature is enabled
 			if (!enabled) throw new ActionError({ code: "FORBIDDEN" });
 
@@ -103,7 +163,7 @@ export const email = {
 			if (!drifter) throw new ActionError({ code: "UNAUTHORIZED" });
 
 			// Initialize database connection
-			const db = drizzle(locals.runtime.env.DB);
+			const db = drizzle(env.DB);
 
 			// Remove email record
 			await db.delete(Email).where(eq(Email.drifter, drifter));

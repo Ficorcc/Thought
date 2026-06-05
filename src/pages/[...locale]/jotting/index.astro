@@ -1,19 +1,17 @@
 ---
+export const prerender = false;
+
 import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import config, { monolocale } from "$config";
 import Base from "$layouts/Base.astro";
-import Jotting from "$components/Jotting.svelte";
+import JottingList from "$components/JottingList.astro";
 import i18nit from "$i18n";
-
-export async function getStaticPaths() {
-	// Create path for each locale, omitting default locale from URL
-	return config.i18n.locales.map(locale => ({ params: { locale: config.i18n.defaultLocale === locale ? undefined : locale } }));
-}
 
 const { locale = config.i18n.defaultLocale } = Astro.params;
 
 const t = i18nit(locale);
+const { pathname, search } = Astro.url;
 
 const jottings = await getCollection("jotting", jotting => {
 	// Filter by publication status and locale
@@ -42,6 +40,6 @@ const tags = Array.from(new Set(jottings.flatMap(jotting => jotting.data.tags).f
 
 <Base title={t("navigation.jotting")} {locale}>
 	<main class="flex flex-col grow">
-		<Jotting client:load {locale} jottings={list} {tags} />
+		<JottingList {locale} jottings={list} {tags} {pathname} {search} />
 	</main>
 </Base>

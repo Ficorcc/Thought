@@ -1,19 +1,17 @@
 ---
+export const prerender = false;
+
 import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import config, { monolocale } from "$config";
 import Base from "$layouts/Base.astro";
-import Note from "$components/Note.svelte";
+import NoteList from "$components/NoteList.astro";
 import i18nit from "$i18n";
-
-export async function getStaticPaths() {
-	// Create path for each locale, omitting default locale from URL
-	return config.i18n.locales.map(locale => ({ params: { locale: config.i18n.defaultLocale === locale ? undefined : locale } }));
-}
 
 const { locale = config.i18n.defaultLocale } = Astro.params;
 
 const t = i18nit(locale);
+const { pathname, search } = Astro.url;
 
 const notes = await getCollection("note", note => {
 	// Filter by publication status and locale
@@ -44,6 +42,6 @@ const tags = Array.from(new Set(notes.flatMap(note => note.data.tags).filter((ta
 
 <Base title={t("navigation.note")} {locale}>
 	<main class="flex flex-col grow">
-		<Note client:load {locale} notes={list} {series} {tags} />
+		<NoteList {locale} notes={list} {series} {tags} {pathname} {search} />
 	</main>
 </Base>

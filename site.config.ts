@@ -8,7 +8,7 @@ const config = siteConfig({
 	author: {
 		name: "Ficor",
 		email: "ficor@qq.com",
-		link: "https://linglingtu.com"
+		link: "https://panjinye.com"
 	},
 	description: "在路上的思绪与脚印",
 	copyright: {

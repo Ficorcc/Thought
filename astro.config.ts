@@ -6,7 +6,6 @@ import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import svelte from "@astrojs/svelte";
 import tailwindcss from "@tailwindcss/vite";
-import swup from "@swup/astro";
 
 import GFM from "remark-gfm";
 import ins from "remark-ins";
@@ -35,15 +34,14 @@ import reading from "./src/lib/reading";
 
 import siteConfig from "./site.config";
 
-const site = process.env.SITE ?? "https://linglingtu.com";
+const site = process.env.SITE ?? "https://panjinye.com";
 
 // https://astro.build/config
 export default defineConfig({
 	adapter: cloudflare({
-		platformProxy: {
-			enabled: true
-		},
-		imageService: "compile"
+		inspectorPort: false,
+		imageService: "compile",
+		prerenderEnvironment: "node"
 	}),
 	site,
 	trailingSlash: "never",
@@ -102,17 +100,39 @@ export default defineConfig({
 	},
 	vite: {
 		// @ts-expect-error
-		plugins: [yaml(), tailwindcss()]
+		plugins: [yaml(), tailwindcss()],
+		optimizeDeps: {
+			exclude: [
+				"@astrojs/cloudflare/entrypoints/server",
+				"astro/actions/runtime/entrypoints/client.js",
+				"astro/actions/runtime/entrypoints/route.js",
+				"astro/actions/runtime/entrypoints/server.js",
+				"astro/env/runtime",
+				"arctic",
+				"drizzle-orm",
+				"drizzle-orm/d1",
+				"drizzle-orm/sqlite-core"
+			]
+		},
+		ssr: {
+			optimizeDeps: {
+				exclude: [
+					"@astrojs/cloudflare/entrypoints/server",
+					"astro/actions/runtime/entrypoints/client.js",
+					"astro/actions/runtime/entrypoints/route.js",
+					"astro/actions/runtime/entrypoints/server.js",
+					"astro/env/runtime",
+					"arctic",
+					"drizzle-orm",
+					"drizzle-orm/d1",
+					"drizzle-orm/sqlite-core"
+				]
+			}
+		}
 	},
 	integrations: [
 		svelte(),
 		mdx(),
-		sitemap(),
-		swup({
-			globalInstance: true,
-			preload: false,
-			smoothScrolling: false,
-			progress: true
-		})
+		sitemap()
 	]
 });

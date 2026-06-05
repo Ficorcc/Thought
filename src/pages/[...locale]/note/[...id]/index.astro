@@ -98,45 +98,56 @@ const t = i18nit(locale);
 			<hr class="border-b border-weak" />
 		</header>
 
-		<Sensitive {locale} back={getRelativeLocaleUrl(locale, "/note")} sensitive={note.data.sensitive} client:load>
-			<div class="contents">
-				<div class="flex gap-5">
-					<section id="markdown-content" class="markdown"><Content /></section>
-					{(outline || !!note.data.series) && <TOC headings={outline} {locale} {series} />}
+		{
+			note.data.sensitive ? (
+				<Sensitive {locale} back={getRelativeLocaleUrl(locale, "/note")} sensitive={note.data.sensitive} client:load>
+					<div class="contents">
+						<div class="flex gap-5">
+							<section id="markdown-content" class="markdown"><Content /></section>
+							{(outline || !!note.data.series) && <TOC headings={outline} {locale} {series} />}
+						</div>
+					</div>
+				</Sensitive>
+			) : (
+				<div class="contents">
+					<div class="flex gap-5">
+						<section id="markdown-content" class="markdown"><Content /></section>
+						{(outline || !!note.data.series) && <TOC headings={outline} {locale} {series} />}
+					</div>
 				</div>
+			)
+		}
 
-				<nav aria-label="Adjacent notes" class:list={["mt-8 grid gap-3 sm:grid-cols-2", hasAside && "sm:me-[13.75rem]"]}>
-					{
-						adjacentNotes.previous ? (
-							<a href={noteUrl(adjacentNotes.previous.id)} class="group flex flex-col gap-1 border-s-2 border-weak ps-3">
-								<span class="inline-flex items-center gap-1 text-sm text-secondary">
-									<Icon name="lucide--arrow-left" size={15} class="rtl:-scale-x-100" />
-									{t("note.previous")}
-								</span>
-								<strong class="link text-base">{adjacentNotes.previous.data.title}</strong>
-							</a>
-						) : (
-							<span aria-hidden="true" class="hidden sm:block" />
-						)
-					}
-					{
-						adjacentNotes.next && (
-							<a href={noteUrl(adjacentNotes.next.id)} class="group flex flex-col gap-1 border-e-2 border-weak pe-3 text-end">
-								<span class="inline-flex items-center justify-end gap-1 text-sm text-secondary">
-									{t("note.next")}
-									<Icon name="lucide--arrow-right" size={15} class="rtl:-scale-x-100" />
-								</span>
-								<strong class="link text-base">{adjacentNotes.next.data.title}</strong>
-							</a>
-						)
-					}
-				</nav>
+		<nav aria-label="Adjacent notes" class:list={["mt-8 grid gap-3 sm:grid-cols-2", hasAside && "sm:me-[13.75rem]"]}>
+			{
+				adjacentNotes.previous ? (
+					<a href={noteUrl(adjacentNotes.previous.id)} class="group flex flex-col gap-1 border-s-2 border-weak ps-3">
+						<span class="inline-flex items-center gap-1 text-sm text-secondary">
+							<Icon name="lucide--arrow-left" size={15} class="rtl:-scale-x-100" />
+							{t("note.previous")}
+						</span>
+						<strong class="link text-base">{adjacentNotes.previous.data.title}</strong>
+					</a>
+				) : (
+					<span aria-hidden="true" class="hidden sm:block" />
+				)
+			}
+			{
+				adjacentNotes.next && (
+					<a href={noteUrl(adjacentNotes.next.id)} class="group flex flex-col gap-1 border-e-2 border-weak pe-3 text-end">
+						<span class="inline-flex items-center justify-end gap-1 text-sm text-secondary">
+							{t("note.next")}
+							<Icon name="lucide--arrow-right" size={15} class="rtl:-scale-x-100" />
+						</span>
+						<strong class="link text-base">{adjacentNotes.next.data.title}</strong>
+					</a>
+				)
+			}
+		</nav>
 
-				<hr class:list={["my-2 border-b border-weak", hasAside && "sm:me-[13.75rem]"]} />
+		<hr class:list={["my-2 border-b border-weak", hasAside && "sm:me-[13.75rem]"]} />
 
-				<blockquote id="comment-section" class:list={[hasAside && "sm:me-[13.75rem]"]}><Comments {locale} link={`${Astro.url.origin}${Astro.url.pathname}`} section="note" item={note.id} /></blockquote>
-			</div>
-		</Sensitive>
+		<blockquote id="comment-section" class:list={[hasAside && "sm:me-[13.75rem]"]}><Comments {locale} link={`${Astro.url.origin}${Astro.url.pathname}`} section="note" item={note.id} /></blockquote>
 
 		<Position {locale} toc={!!outline} series={!!note.data.series} />
 	</main>

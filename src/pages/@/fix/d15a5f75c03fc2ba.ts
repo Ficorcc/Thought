@@ -1,13 +1,14 @@
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Comment } from "$db/schema";
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ locals }) => {
-	const db = drizzle(locals.runtime.env.DB);
+export const GET: APIRoute = async () => {
+	const db = drizzle(env.DB);
 
 	const prefaces = await getCollection("preface");
 	const statements = prefaces.map(preface =>

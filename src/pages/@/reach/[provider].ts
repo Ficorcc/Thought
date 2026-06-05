@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { generateCodeVerifier } from "arctic";
+import { env } from "cloudflare:workers";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { OAuth, type OAuthAccount } from "$lib/oauth";
@@ -36,8 +37,9 @@ function decodeState(state: string | null): OAuthState | null {
 	}
 }
 
-export const GET: APIRoute = async ({ cookies, params, url, locals, redirect, request }) => {
+export const GET: APIRoute = async ({ cookies, params, url, redirect, request }) => {
 	const { provider } = params;
+	const redirectBase = new URL("/@/reach", url).toString();
 
 	const code = url.searchParams.get("code");
 	const state = url.searchParams.get("state");
@@ -53,9 +55,9 @@ export const GET: APIRoute = async ({ cookies, params, url, locals, redirect, re
 		if (!escort || ("state" in escort && escort.state !== state)) return new Response("Unauthorized", { status: 401 });
 
 		// Exchange authorization code for user account information
-		const user: OAuthAccount = await new OAuth(provider).validate(code, escort.codeVerifier);
+		const user: OAuthAccount = await new OAuth(provider, redirectBase).validate(code, escort.codeVerifier);
 
-		const db = drizzle(locals.runtime.env.DB);
+		const db = drizzle(env.DB);
 		// Insert or update user account in database with conflict resolution
 		const drifter = await db
 			.insert(Drifter)
@@ -122,7 +124,7 @@ export const GET: APIRoute = async ({ cookies, params, url, locals, redirect, re
 		await Token.issue(cookies, "escort", { state, codeVerifier, referrer: request.headers.get("referer") ?? "/" }, "5 minutes");
 
 		// Generate OAuth authorization URL and redirect user
-		const link: URL = new OAuth(provider).url(state, codeVerifier);
+		const link: URL = new OAuth(provider, redirectBase).url(state, codeVerifier);
 		return redirect(link.toString(), 302);
 	}
 };

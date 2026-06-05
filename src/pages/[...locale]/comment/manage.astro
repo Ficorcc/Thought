@@ -1,11 +1,11 @@
 ---
 export const prerender = false;
 
+import { getSecret } from "astro:env/server";
 import config, { oauth } from "$config";
 import { Token } from "$lib/token";
 import Base from "$layouts/Base.astro";
 import Manager from "$components/comment/Manager.svelte";
-import ManageSignin from "$components/comment/ManageSignin.svelte";
 import i18nit from "$i18n";
 
 const { locale = config.i18n.defaultLocale } = Astro.params;
@@ -13,7 +13,7 @@ const { locale = config.i18n.defaultLocale } = Astro.params;
 const t = i18nit(locale);
 
 const passport = await Token.check(Astro.cookies, "passport", false);
-const authorId = Astro.locals.runtime.env.AUTHOR_ID ?? null;
+const authorId = getSecret("AUTHOR_ID") ?? null;
 const signedIn = Boolean(passport?.visa);
 const authorized = Boolean(authorId && passport?.visa === authorId);
 ---
@@ -22,9 +22,27 @@ const authorized = Boolean(authorId && passport?.visa === authorId);
 	<main class="flex flex-col gap-6 grow">
 		{
 			authorized ? (
-				<Manager client:load {locale} />
+				<Manager client:only="svelte" {locale} />
 			) : (
-				<ManageSignin client:load {locale} {oauth} {signedIn} />
+				<section class="py-[18vh] text-center flex flex-col items-center gap-3">
+					<h2>{t("comment.manage.title")}</h2>
+					<p class="text-secondary max-w-lg">
+						{signedIn ? t("comment.manage.switchDescription") : t("comment.manage.signinDescription")}
+					</p>
+
+					{signedIn && <a data-no-swup href="/@/depart" class="form-button">{t("drifter.signout")}</a>}
+
+					{!!oauth.length && (
+						<div class="flex flex-col items-center gap-2 w-full max-w-72">
+							{oauth.map(provider => (
+								<a data-no-swup href={`/@/reach/${provider.name}`} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
+									<i class={`iconify ${provider.logo} size-[0.95rem]`} aria-hidden="true"></i>
+									<span class="font-bold text-sm">{t("oauth.signin", { provider: provider.name })}</span>
+								</a>
+							))}
+						</div>
+					)}
+				</section>
 			)
 		}
 	</main>

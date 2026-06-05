@@ -1,0 +1,226 @@
+---
+import config from "$config";
+import type { Section } from "$lib/config";
+import Time from "$lib/time";
+import i18nit from "$i18n";
+
+type NoteItem = {
+	id: string;
+	url: string;
+	data: {
+		title: string;
+		timestamp: Date;
+		series?: string;
+		tags?: string[];
+		sensitive?: boolean;
+		top?: number;
+	};
+};
+
+const { locale, notes, series: seriesList, tags: tagList, pathname, search, section = "note" } = Astro.props as {
+	locale: string;
+	notes: NoteItem[];
+	series: string[];
+	tags: string[];
+	pathname: string;
+	search: string;
+	section?: Section;
+};
+
+const t = i18nit(locale);
+const size = (config.pagination as Record<string, number> | undefined)?.[section] || 15;
+const searchParams = new URLSearchParams(search);
+const selectedSeries = searchParams.get("series");
+const selectedTags = searchParams.getAll("tag");
+
+const filtered = notes
+	.filter(note => {
+		const matchSeries = !selectedSeries || note.data.series === selectedSeries;
+		const matchTags = selectedTags.every(tag => note.data.tags?.includes(tag));
+
+		return matchSeries && matchTags;
+	})
+	.sort((a, b) => (b.data.top ?? 0) - (a.data.top ?? 0) || b.data.timestamp.getTime() - a.data.timestamp.getTime());
+
+const pages = Math.max(1, Math.ceil(filtered.length / size));
+const pageParam = Number(searchParams.get("page"));
+const page = Math.max(1, Math.min(Number.isNaN(pageParam) || pageParam < 1 ? 1 : Math.floor(pageParam), pages));
+const list = filtered.slice((page - 1) * size, page * size);
+
+function withParams(update: (params: URLSearchParams) => void) {
+	const params = new URLSearchParams(searchParams);
+	update(params);
+	const query = params.toString();
+
+	return `${pathname}${query ? `?${query}` : ""}`;
+}
+
+function seriesUrl(value: string) {
+	return withParams(params => {
+		params.delete("page");
+		selectedSeries === value ? params.delete("series") : params.set("series", value);
+	});
+}
+
+function tagUrl(value: string, force = false) {
+	return withParams(params => {
+		params.delete("page");
+		params.delete("tag");
+
+		const next = force || !selectedTags.includes(value) ? Array.from(new Set([...selectedTags, value])) : selectedTags.filter(tag => tag !== value);
+		for (const tag of next) params.append("tag", tag);
+	});
+}
+
+function pageUrl(value: number) {
+	return withParams(params => {
+		value > 1 ? params.set("page", String(value)) : params.delete("page");
+	});
+}
+
+function paginationItems() {
+	if (pages <= 7) return Array.from({ length: pages }, (_, index) => index + 1);
+
+	const middle = Array.from({ length: Math.min(5, pages - 2) }, (_, index) => index + Math.max(2, Math.min(pages - 5, page - 2)));
+	return [1, page > 4 ? "start" : null, ...middle, page < pages - 3 ? "end" : null, pages].filter(Boolean);
+}
+---
+
+<div class="flex flex-col-reverse sm:flex-row gap-10 grow">
+	<article class="flex flex-col gap-5 grow">
+		{
+			list.length > 0 ? (
+				list.map(note => (
+					<section class="flex flex-col">
+						<div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+							<div class="min-w-0 *:inline *:align-middle font-bold">
+								{(note.data.top ?? 0) > 0 && <i class="iconify lucide--flag-triangle-right rtl:-scale-x-100" aria-hidden="true"></i>}
+								{note.data.sensitive && <i class="iconify lucide--siren" aria-label={t("sensitive.icon")} title={t("sensitive.icon")}></i>}
+								{note.data.series && (
+									<>
+										<a data-no-swup href={seriesUrl(note.data.series)}>{note.data.series}</a>
+										<span aria-hidden="true">|</span>
+									</>
+								)}
+								<a data-no-swup href={note.url} class="link break-words">{note.data.title}</a>
+							</div>
+							{!!note.data.tags?.length && (
+								<span class="inline-flex flex-wrap gap-x-2 gap-y-1 sm:max-w-[42%] sm:justify-end sm:text-right shrink-0">
+									{note.data.tags.map(tag => <a data-no-swup href={tagUrl(tag, true)} class="text-secondary text-sm">#{tag}</a>)}
+								</span>
+							)}
+						</div>
+						<time datetime={note.data.timestamp.toISOString()} class="mt-1 font-mono text-[0.65rem] text-secondary">{Time.toString(note.data.timestamp)}</time>
+					</section>
+				))
+			) : (
+				<div class="pt-[10vh] text-center text-secondary font-bold text-xl">{t(`${section}.empty`)}</div>
+			)
+		}
+
+		{
+			pages > 1 && (
+				<nav aria-label="Pagination" class="pagination">
+					<a data-no-swup aria-label="Previous page" class:list={[page === 1 && "disabled"]} href={pageUrl(Math.max(1, page - 1))}>{"<"}</a>
+					{paginationItems().map(item =>
+						typeof item === "number" ? (
+							<a data-no-swup aria-current={item === page ? "page" : undefined} class:list={[item === page && "location"]} href={pageUrl(item)}>{item}</a>
+						) : (
+							<span aria-hidden="true">...</span>
+						)
+					)}
+					<a data-no-swup aria-label="Next page" class:list={[page === pages && "disabled"]} href={pageUrl(Math.min(pages, page + 1))}>{">"}</a>
+				</nav>
+			)
+		}
+	</article>
+
+	<aside class="sm:basis-50 shrink-0 flex flex-col gap-5">
+		<section>
+			<h4>{t(`${section}.series`)}</h4>
+			<p>
+				{seriesList.map(series => <a data-no-swup class:list={[series === selectedSeries && "selected"]} href={seriesUrl(series)}>{series}</a>)}
+			</p>
+		</section>
+
+		<section>
+			<h4>{t(`${section}.tag`)}</h4>
+			<p>
+				{tagList.map(tag => <a data-no-swup class:list={[selectedTags.includes(tag) && "selected"]} href={tagUrl(tag)}>{tag}</a>)}
+			</p>
+		</section>
+	</aside>
+</div>
+
+<style>
+	aside {
+		section {
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+
+			p {
+				display: flex;
+				flex-flow: row wrap;
+				gap: 5px;
+
+				a {
+					border-bottom: 1px solid var(--primary-color);
+					padding: 0 0.35rem;
+					font-size: 0.9rem;
+					transition:
+						color 0.1s ease-in-out,
+						background-color 0.1s ease-in-out;
+
+					&.selected {
+						color: var(--background-color);
+						background-color: var(--primary-color);
+					}
+
+					@media (min-width: 640px) {
+						&:hover {
+							color: var(--background-color);
+							background-color: var(--primary-color);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	.pagination {
+		position: sticky;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		margin-top: auto;
+		padding-bottom: 0.25rem;
+		color: var(--weak-color);
+		background-color: var(--background-color);
+		font-family: var(--font-mono);
+		font-size: 0.875rem;
+
+		a,
+		span {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 30px;
+			height: 30px;
+			border-bottom: 2px solid;
+			transition: color 0.15s ease-in-out;
+		}
+
+		a:hover,
+		a.location {
+			color: var(--primary-color);
+		}
+
+		a.disabled {
+			pointer-events: none;
+			opacity: 0.35;
+		}
+	}
+</style>

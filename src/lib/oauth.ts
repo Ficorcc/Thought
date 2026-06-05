@@ -38,13 +38,13 @@ export class OAuth {
 	 * @param provider - OAuth provider name
 	 * @throws Error if provider is invalid or required environment variables are missing
 	 */
-	constructor(provider?: string) {
+	constructor(provider?: string, redirectBase = REDIRECT_URI) {
 		if (provider === "GitHub") {
 			if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) throw new Error("Missing Environment Variables");
-			this.provider = new GitHub(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET, `${REDIRECT_URI}/GitHub`);
+			this.provider = new GitHub(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET, `${redirectBase}/GitHub`);
 		} else if (provider === "Google") {
 			if (!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET)) throw new Error("Missing Environment Variables");
-			this.provider = new Google(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, `${REDIRECT_URI}/Google`);
+			this.provider = new Google(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, `${redirectBase}/Google`);
 		} else {
 			throw new Error("Invalid Provider");
 		}

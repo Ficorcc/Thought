@@ -3,9 +3,7 @@ import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "$components/Icon.svelte";
 import config, { monolocale } from "$config";
 import i18nit from "$i18n";
-import Navigator from "./Navigator.svelte";
 import ThemeSwitcher from "./ThemeSwitcher.astro";
-import LanguagePicker from "./LanguagePicker.svelte";
 import Menu from "./Menu.astro";
 
 const { locale, title } = Astro.props;
@@ -23,6 +21,7 @@ const routes: { path: string; extra?: string[]; icon: `${string}--${string}`; la
 
 const route = Astro.url.pathname;
 const launcher = config.header?.launcher;
+const languagePath = route.slice(`/${locale === config.i18n.defaultLocale ? "" : locale}`.length) || undefined;
 
 function localize(value: string | Record<string, string | undefined> | undefined): string {
 	if (!value) return "";
@@ -33,6 +32,12 @@ function localize(value: string | Record<string, string | undefined> | undefined
 
 function external(url: string): boolean {
 	return /^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(url) || /^[a-z][a-z0-9+.-]*:/i.test(url);
+}
+
+function active(path: string, extra?: string[]): boolean {
+	if (extra?.some(item => item === route)) return true;
+	if (path === routes[0].path) return path === route;
+	return route.startsWith(path);
 }
 ---
 
@@ -61,7 +66,7 @@ function external(url: string): boolean {
 </style>
 
 <header class="sticky top-0 flex items-center justify-between pt-3 pb-1 mb-4 bg-background z-150 sm:static sm:mb-12">
-	<a href={getRelativeLocaleUrl(locale)} class="text-lg sm:text-2xl font-bold">{title}</a>
+	<a data-no-swup href={getRelativeLocaleUrl(locale)} class="text-lg sm:text-2xl font-bold">{title}</a>
 
 	<button id="sidebar-open" aria-label="Open Sidebar" class="sm:hidden"><Icon name="lucide--align-justify" /></button>
 	<div id="sidebar-overlay" aria-hidden="true" class="sm:hidden fixed top-0 inset-s-0 w-screen h-screen transition-[background-color]"></div>
@@ -69,7 +74,20 @@ function external(url: string): boolean {
 	<nav id="sidebar" class="fixed top-0 inset-e-0 flex flex-col justify-between items-start gap-5 p-5 bg-background h-full sm:contents overflow-hidden transition-transform">
 		<header class="grid gap-5 sm:text-secondary grid-rows-[repeat(6,1fr)] sm:grid-rows-none sm:grid-cols-[repeat(5,1fr)]">
 			<button id="sidebar-close" class="sm:hidden"><Icon name="lucide--x" /></button>
-			<Navigator {route} {routes} client:load />
+			{
+				routes.map(item => {
+					const isActive = active(item.path, item.extra);
+
+					return (
+						<a data-no-swup href={item.path} data-sidebar-link class:list={["relative inline-flex items-center group", isActive && "max-sm:font-bold"]}>
+							<span class:list={["sm:absolute sm:w-full h-full inline-flex items-center sm:justify-center sm:border-b-2 sm:py-1 transition-[border-color] duration-150 ease-linear", isActive ? "border-secondary" : "border-transparent"]}>
+								<Icon name={item.icon} />
+							</span>
+							<p class="w-full sm:py-1 px-2.5 sm:text-center sm:text-background sm:bg-primary sm:clip-path-hidden transition-[clip-path] group-hover:clip-path-visible">{item.label}</p>
+						</a>
+					);
+				})
+			}
 		</header>
 
 		<footer class="flex flex-col items-start gap-2 sm:flex-row sm:gap-7">
@@ -81,7 +99,7 @@ function external(url: string): boolean {
 				!monolocale && (
 					<Menu label="Language switcher">
 						<Icon name="lucide--earth" slot="trigger" />
-						<LanguagePicker {locale} {route} client:load />
+						{config.i18n.locales.map(target => <a data-no-swup href={getRelativeLocaleUrl(target, languagePath)} lang={target} aria-current={locale === target ? "page" : undefined} class={locale === target ? "font-bold sm:bg-primary sm:text-background pointer-events-none" : ""}>{i18nit(target)("language")}</a>)}
 					</Menu>
 				)
 			}
@@ -103,7 +121,7 @@ function external(url: string): boolean {
 				)
 			}
 
-			<a href={getRelativeLocaleUrl(locale, "/comment/manage")} aria-label={t("comment.manage.title")} class="inline-flex">
+			<a data-no-swup href={getRelativeLocaleUrl(locale, "/comment/manage")} aria-label={t("comment.manage.title")} class="inline-flex">
 				<Icon name="lucide--message-square-more" title={t("comment.manage.title")} />
 			</a>
 		</footer>
@@ -129,4 +147,5 @@ function external(url: string): boolean {
 	open.addEventListener("click", handleOpen);
 	close.addEventListener("click", handleClose);
 	overlay.addEventListener("click", handleClose);
+	document.querySelectorAll("[data-sidebar-link]").forEach(link => link.addEventListener("click", handleClose));
 </script>

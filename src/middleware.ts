@@ -1,6 +1,6 @@
 import { defineMiddleware } from "astro:middleware";
 
-const PRIMARY_HOST = "linglingtu.com";
+const PRIMARY_HOST = "panjinye.com";
 const LEGACY_HOST = "thought.ficor.workers.dev";
 
 export const onRequest = defineMiddleware((context, next) => {
