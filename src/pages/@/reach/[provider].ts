@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { site } from "astro:config/server";
 import { generateCodeVerifier } from "arctic";
 import { env } from "cloudflare:workers";
 import { sql } from "drizzle-orm";
@@ -8,6 +9,8 @@ import { AESEncryption, random, Token } from "$lib/token";
 import { Drifter, Email } from "$db/schema";
 
 export const prerender = false;
+
+const SITE = site ?? "https://panjinye.com";
 
 type OAuthState = {
 	codeVerifier: string;
@@ -37,9 +40,22 @@ function decodeState(state: string | null): OAuthState | null {
 	}
 }
 
+function normalizeReferrer(referrer: string | null) {
+	const siteUrl = new URL(SITE);
+	if (!referrer) return new URL("/", siteUrl).toString();
+
+	try {
+		const url = new URL(referrer, siteUrl);
+		if (url.origin === siteUrl.origin) return url.toString();
+		return new URL(`${url.pathname}${url.search}${url.hash}`, siteUrl).toString();
+	} catch (_) {
+		return new URL("/", siteUrl).toString();
+	}
+}
+
 export const GET: APIRoute = async ({ cookies, params, url, redirect, request }) => {
 	const { provider } = params;
-	const redirectBase = new URL("/@/reach", url).toString();
+	const redirectBase = new URL("/@/reach", SITE).toString();
 
 	const code = url.searchParams.get("code");
 	const state = url.searchParams.get("state");
@@ -117,11 +133,12 @@ export const GET: APIRoute = async ({ cookies, params, url, redirect, request })
 	} else {
 		// Initialize OAuth flow with PKCE parameters
 		const codeVerifier = generateCodeVerifier();
-		const state = encodeState({ codeVerifier, referrer: request.headers.get("referer") ?? "/", expires: Date.now() + 5 * 60 * 1000 });
+		const referrer = normalizeReferrer(url.searchParams.get("referrer") ?? request.headers.get("referer"));
+		const state = encodeState({ codeVerifier, referrer, expires: Date.now() + 5 * 60 * 1000 });
 
 		// Store OAuth state and referrer in escort token as a temporary
 		// compatibility fallback for browsers that already started a flow.
-		await Token.issue(cookies, "escort", { state, codeVerifier, referrer: request.headers.get("referer") ?? "/" }, "5 minutes");
+		await Token.issue(cookies, "escort", { state, codeVerifier, referrer }, "5 minutes");
 
 		// Generate OAuth authorization URL and redirect user
 		const link: URL = new OAuth(provider, redirectBase).url(state, codeVerifier);

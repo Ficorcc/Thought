@@ -15,6 +15,7 @@ let {
 	section,
 	item,
 	oauth,
+	reachBase,
 	turnstile,
 	push,
 	email,
@@ -25,6 +26,7 @@ let {
 	section: string;
 	item: string;
 	oauth: any;
+	reachBase: string;
 	turnstile?: string;
 	push?: string;
 	email: boolean;
@@ -33,6 +35,7 @@ let {
 
 context.locale = locale;
 context.oauth = oauth;
+context.reachBase = reachBase;
 context.turnstile = turnstile;
 context.push = push;
 context.email = email;

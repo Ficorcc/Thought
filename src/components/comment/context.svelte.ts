@@ -1,5 +1,6 @@
 const context: {
 	locale: string;
+	reachBase: string;
 	oauth: any[];
 	turnstile?: string;
 	push?: string;
@@ -20,6 +21,7 @@ const context: {
 	subscription?: number;
 } = $state({
 	locale: "",
+	reachBase: "/@/reach/",
 	oauth: [],
 	email: false,
 	limitComment: 0,

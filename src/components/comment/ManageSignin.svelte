@@ -7,16 +7,23 @@ import i18nit from "$i18n";
 let {
 	locale,
 	oauth,
+	reachBase = "https://panjinye.com/@/reach/",
 	signedIn = false
 }: {
 	locale: string;
 	oauth: Array<{ name: string; logo: string }>;
+	reachBase?: string;
 	signedIn?: boolean;
 } = $props();
 
 let translate = $derived(i18nit(locale));
 
 let open = $state(false);
+
+function reachHref(provider: string) {
+	const referrer = `${location.pathname}${location.search}${location.hash}`;
+	return `${reachBase}${provider}?referrer=${encodeURIComponent(referrer)}`;
+}
 
 onMount(() => {
 	open = true;
@@ -37,7 +44,7 @@ onMount(() => {
 		{#if oauth.length}
 			<div class="flex flex-col items-center gap-2 w-full">
 				{#each oauth as provider}
-					<a href={`/@/reach/${provider.name}`} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
+					<a href={reachHref(provider.name)} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
 						<Icon size="0.95rem" name={provider.logo} />
 						<span class="font-bold text-sm">{translate("oauth.signin", { provider: provider.name })}</span>
 					</a>

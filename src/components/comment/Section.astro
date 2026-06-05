@@ -1,4 +1,5 @@
 ---
+import { site } from "astro:config/server";
 import { oauth, turnstile, push, email } from "$config";
 
 interface Props {
@@ -10,7 +11,8 @@ interface Props {
 }
 
 const { locale, link, section, item, compact } = Astro.props;
-const props = JSON.stringify({ locale, link, section, item, oauth, turnstile, push, email, compact });
+const reachBase = new URL("/@/reach/", site ?? "https://panjinye.com").toString();
+const props = JSON.stringify({ locale, link, section, item, oauth, reachBase, turnstile, push, email, compact });
 ---
 
 <!-- Wrapping component to inject server-side environment variables -->

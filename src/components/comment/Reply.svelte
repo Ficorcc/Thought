@@ -51,6 +51,11 @@ let captchaQuestion: string | undefined = $state(); // Captcha question for unau
 let captchaError: boolean = $state(false); // Whether CAPTCHA failed to load or verify
 let overlength: boolean = $derived(content.length > Number(config.comment?.["max-length"])); // Content length check
 
+function reachHref(provider: string) {
+	const referrer = `${location.pathname}${location.search}${location.hash}`;
+	return `${context.reachBase}${provider}?referrer=${encodeURIComponent(referrer)}`;
+}
+
 // Generate storage key
 const DRAFT_PREFIX = "comment-draft:";
 const DRAFT_SAVE_DELAY = 500;
@@ -330,7 +335,7 @@ onMount(() => {
 
 			<div class="flex flex-col items-center gap-2">
 				{#each context.oauth as provider}
-					<a href={`/@/reach/${provider.name}`} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
+					<a href={reachHref(provider.name)} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
 						<Icon size="0.95rem" name={provider.logo} />
 						<span class="font-bold text-sm">{t("oauth.signin", { provider: provider.name })}</span>
 					</a>

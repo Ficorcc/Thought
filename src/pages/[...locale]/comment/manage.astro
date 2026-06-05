@@ -1,6 +1,7 @@
 ---
 export const prerender = false;
 
+import { site } from "astro:config/server";
 import { getSecret } from "astro:env/server";
 import config, { oauth } from "$config";
 import { Token } from "$lib/token";
@@ -16,6 +17,8 @@ const passport = await Token.check(Astro.cookies, "passport", false);
 const authorId = getSecret("AUTHOR_ID") ?? null;
 const signedIn = Boolean(passport?.visa);
 const authorized = Boolean(authorId && passport?.visa === authorId);
+const reachBase = new URL("/@/reach/", site ?? "https://panjinye.com").toString();
+const referrer = `${Astro.url.pathname}${Astro.url.search}`;
 ---
 
 <Base title={t("comment.manage.title")} {locale}>
@@ -35,7 +38,7 @@ const authorized = Boolean(authorId && passport?.visa === authorId);
 					{!!oauth.length && (
 						<div class="flex flex-col items-center gap-2 w-full max-w-72">
 							{oauth.map(provider => (
-								<a data-no-swup href={`/@/reach/${provider.name}`} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
+								<a data-no-swup href={`${new URL(provider.name, reachBase).toString()}?referrer=${encodeURIComponent(referrer)}`} class="flex items-center justify-center gap-2 w-full border-2 border-secondary py-1 px-2 rounded">
 									<i class={`iconify ${provider.logo} size-[0.95rem]`} aria-hidden="true"></i>
 									<span class="font-bold text-sm">{t("oauth.signin", { provider: provider.name })}</span>
 								</a>

@@ -2,6 +2,7 @@ import { site } from "astro:config/server";
 import { decodeIdToken, GitHub, Google } from "arctic";
 
 const env = import.meta.env;
+const SITE = site ?? "https://panjinye.com";
 
 // Interface defining the structure of OAuth account information
 export interface OAuthAccount {
@@ -18,7 +19,7 @@ export interface OAuthAccount {
 }
 
 // OAuth redirect URI for all providers
-const REDIRECT_URI = new URL("/@/reach", site).toString();
+const REDIRECT_URI = new URL("/@/reach", SITE).toString();
 
 /**
  * User-Agent header required by GitHub API
