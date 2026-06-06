@@ -1,0 +1,682 @@
+---
+export const prerender = false;
+
+import Base from "$layouts/Base.astro";
+---
+
+<Base title="后台管理" locale="zh-cn">
+	<main class="admin-shell">
+		<header class="admin-top">
+			<div>
+				<p class="eyebrow">Thought Admin</p>
+				<h1>后台管理</h1>
+			</div>
+			<div class="admin-actions">
+				<button data-action="reload" class="button">刷新</button>
+				<a href="/" class="button ghost">返回网站</a>
+			</div>
+		</header>
+
+		<section class="stats" id="stats"></section>
+
+		<div class="workspace">
+			<nav class="tabs" aria-label="后台模块">
+				<button class="tab active" data-tab="content">内容</button>
+				<button class="tab" data-tab="preface">序文 / Memos</button>
+				<button class="tab" data-tab="links">友链 / 订阅</button>
+				<button class="tab" data-tab="deploy">部署</button>
+			</nav>
+
+			<section class="panel active" data-panel="content">
+				<div class="panel-head">
+					<div>
+						<h2>文章管理</h2>
+						<p>文记、指南、随笔统一管理，支持目录、分类、标签和新建草稿。</p>
+					</div>
+					<div class="filters">
+						<select id="sectionFilter">
+							<option value="">全部栏目</option>
+							<option value="note">文记</option>
+							<option value="guide">指南</option>
+							<option value="jotting">随笔</option>
+						</select>
+						<input id="articleSearch" type="search" placeholder="搜索标题、标签、分类" />
+					</div>
+				</div>
+
+				<div class="split">
+					<div class="table-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th>标题</th>
+									<th>栏目</th>
+									<th>分类</th>
+									<th>标签</th>
+									<th>目录</th>
+								</tr>
+							</thead>
+							<tbody id="articleRows"></tbody>
+						</table>
+					</div>
+
+					<form id="articleForm" class="editor">
+						<h3>新建文章</h3>
+						<label>栏目<select name="section"><option value="note">文记</option><option value="guide">指南</option><option value="jotting">随笔</option></select></label>
+						<label>语言<select name="locale"><option value="zh-cn">zh-cn</option><option value="en">en</option></select></label>
+						<label>标题<input name="title" required placeholder="输入标题后自动生成 slug" /></label>
+						<label>Slug<input name="slug" placeholder="auto-generated-slug" /></label>
+						<label>分类<input name="series" list="seriesList" placeholder="例如：技术" /></label>
+						<label>标签<input name="tags" list="tagList" placeholder="逗号或空格分隔" /></label>
+						<label>摘要<textarea name="description" rows="3" placeholder="可自动提取"></textarea></label>
+						<label class="check"><input type="checkbox" name="toc" /> 显示目录</label>
+						<label class="check"><input type="checkbox" name="draft" /> 存为草稿</label>
+						<label>正文<textarea name="body" rows="13" placeholder="Markdown 正文"></textarea></label>
+						<div class="row-actions">
+							<button type="button" class="button ghost" data-action="extract">提取摘要和标签</button>
+							<button type="submit" class="button">保存文章</button>
+						</div>
+						<article class="preview markdown" id="articlePreview"></article>
+					</form>
+				</div>
+			</section>
+
+			<section class="panel" data-panel="preface">
+				<div class="panel-head">
+					<div>
+						<h2>序文与 Memos</h2>
+						<p>本地序文和 Memos API 合并显示；新建序文会写入 `src/content/preface`。</p>
+					</div>
+				</div>
+				<div class="split">
+					<div>
+						<h3>时间线</h3>
+						<div id="memosList" class="list"></div>
+					</div>
+					<form id="prefaceForm" class="editor">
+						<h3>新建序文</h3>
+						<label>语言<select name="locale"><option value="zh-cn">zh-cn</option><option value="en">en</option></select></label>
+						<label>时间<input name="timestamp" type="datetime-local" /></label>
+						<label>内容<textarea name="body" rows="12" placeholder="写一段序文或动态"></textarea></label>
+						<button type="submit" class="button">保存序文</button>
+					</form>
+				</div>
+			</section>
+
+			<section class="panel" data-panel="links">
+				<div class="panel-head">
+					<div>
+						<h2>友链与订阅源</h2>
+						<p>输入域名自动发现名称、描述、头像和订阅地址；本地友链与订阅 API 合并显示。</p>
+					</div>
+					<div class="row-actions">
+						<button class="button ghost" data-action="checkLinks">检测友链</button>
+						<button class="button ghost" data-action="refreshFeeds">刷新订阅</button>
+					</div>
+				</div>
+
+				<div class="split">
+					<div>
+						<form id="discoverForm" class="discover">
+							<input name="url" placeholder="example.com 或 https://example.com" />
+							<button class="button" type="submit">发现</button>
+						</form>
+						<form id="linkForm" class="editor compact">
+							<label>名称<input name="title" /></label>
+							<label>网址<input name="url" /></label>
+							<label>类型<input name="type" placeholder="lifestyle / technology / creative" /></label>
+							<label>头像<input name="image" /></label>
+							<label>订阅<input name="feed" /></label>
+							<label>描述<textarea name="description" rows="3"></textarea></label>
+							<button class="button" type="submit">保存友链</button>
+						</form>
+					</div>
+					<div>
+						<h3>友链</h3>
+						<div id="linksList" class="list"></div>
+						<h3>订阅文章</h3>
+						<div id="feedsList" class="list"></div>
+					</div>
+				</div>
+			</section>
+
+			<section class="panel" data-panel="deploy">
+				<div class="panel-head">
+					<div>
+						<h2>提交与部署</h2>
+						<p>本地 Git 仓库状态、提交、推送并部署到 Cloudflare。</p>
+					</div>
+				</div>
+				<form id="deployForm" class="deploy-box">
+					<label>提交信息<input name="message" value="Update content from admin" /></label>
+					<div class="row-actions">
+						<button type="button" class="button ghost" data-deploy="status">状态</button>
+						<button type="button" class="button ghost" data-deploy="commit">提交</button>
+						<button type="button" class="button ghost" data-deploy="push">推送</button>
+						<button type="button" class="button ghost" data-deploy="deploy">部署</button>
+						<button type="button" class="button" data-deploy="all">一键提交推送部署</button>
+					</div>
+				</form>
+				<pre id="deployOutput" class="log"></pre>
+			</section>
+		</div>
+
+		<datalist id="tagList"></datalist>
+		<datalist id="seriesList"></datalist>
+		<div id="toast" class="toast" hidden></div>
+	</main>
+</Base>
+
+<script>
+	// @ts-nocheck
+	const state = {
+		articles: [],
+		prefaces: [],
+		links: [],
+		chronicle: [],
+		feeds: [],
+		tags: [],
+		series: [],
+		counts: {}
+	};
+
+	const $ = selector => document.querySelector(selector);
+	const $$ = selector => Array.from(document.querySelectorAll(selector));
+	const field = (form, name) => form.elements.namedItem(name);
+
+	function toast(message) {
+		const node = $("#toast");
+		node.textContent = message;
+		node.hidden = false;
+		clearTimeout(toast.timer);
+		toast.timer = setTimeout(() => (node.hidden = true), 2600);
+	}
+
+	async function api(action, body = undefined) {
+		const response = await fetch(`/api/admin/${action}`, {
+			method: body ? "POST" : "GET",
+			headers: body ? { "content-type": "application/json" } : undefined,
+			body: body ? JSON.stringify(body) : undefined
+		});
+		const data = await response.json();
+		if (!data.ok) throw new Error(data.error || "操作失败");
+		return data;
+	}
+
+	function escapeHTML(value = "") {
+		return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
+	}
+
+	function slugify(value) {
+		return value
+			.trim()
+			.toLowerCase()
+			.replace(/[^\p{L}\p{N}\s_-]+/gu, "")
+			.replace(/[\s_]+/g, "-")
+			.replace(/-+/g, "-")
+			.replace(/^-|-$/g, "");
+	}
+
+	function stripMarkdown(value) {
+		return value
+			.replace(/```[\s\S]*?```/g, " ")
+			.replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+			.replace(/\[([^\]]+)]\([^)]*\)/g, "$1")
+			.replace(/[#>*_`~\\-|]/g, " ")
+			.replace(/<[^>]+>/g, " ")
+			.replace(/\s+/g, " ")
+			.trim();
+	}
+
+	function extractTags(value) {
+		return Array.from(new Set(stripMarkdown(value).match(/[A-Za-z][A-Za-z0-9+#.-]{1,24}|[\u4e00-\u9fa5]{2,6}/g) || [])).slice(0, 8);
+	}
+
+	function markdown(value) {
+		return escapeHTML(value)
+			.replace(/^### (.+)$/gm, "<h3>$1</h3>")
+			.replace(/^## (.+)$/gm, "<h2>$1</h2>")
+			.replace(/^# (.+)$/gm, "<h1>$1</h1>")
+			.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+			.replace(/`(.+?)`/g, "<code>$1</code>")
+			.replace(/\n{2,}/g, "</p><p>")
+			.replace(/^(.+)$/s, "<p>$1</p>");
+	}
+
+	function renderStats() {
+		$("#stats").innerHTML = [
+			["文章", state.counts.articles || 0],
+			["序文", state.counts.prefaces || 0],
+			["友链", state.counts.links || 0],
+			["标签", state.counts.tags || 0],
+			["分类", state.counts.series || 0]
+		]
+			.map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
+			.join("");
+	}
+
+	function renderArticles() {
+		const keyword = $("#articleSearch").value.trim().toLowerCase();
+		const section = $("#sectionFilter").value;
+		const rows = state.articles.filter(item => {
+			const haystack = `${item.title} ${item.series} ${(item.tags || []).join(" ")}`.toLowerCase();
+			return (!section || item.section === section) && (!keyword || haystack.includes(keyword));
+		});
+		$("#articleRows").innerHTML =
+			rows
+				.slice(0, 120)
+				.map(
+					item => `<tr>
+					<td><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.path)}</small></td>
+					<td>${item.section}</td>
+					<td>${escapeHTML(item.series || "-")}</td>
+					<td>${(item.tags || []).map(tag => `<span class="pill">${escapeHTML(tag)}</span>`).join("")}</td>
+					<td>${(item.headings || []).length} 项</td>
+				</tr>`
+				)
+				.join("") || `<tr><td colspan="5">没有匹配内容</td></tr>`;
+	}
+
+	function renderLists() {
+		$("#tagList").innerHTML = state.tags.map(tag => `<option value="${escapeHTML(tag)}"></option>`).join("");
+		$("#seriesList").innerHTML = state.series.map(series => `<option value="${escapeHTML(series)}"></option>`).join("");
+		$("#memosList").innerHTML = [...state.prefaces.map(item => ({ ...item, source: "preface", text: item.text })), ...state.chronicle]
+			.slice(0, 80)
+			.map(item => `<article class="list-item"><strong>${escapeHTML(item.date || item.timestamp || "")}</strong><p>${escapeHTML(item.text || "")}</p><span>${escapeHTML(item.source || item.path || "local")}</span></article>`)
+			.join("");
+		$("#linksList").innerHTML = state.links
+			.map(item => `<article class="list-item link-item"><img src="${escapeHTML(item.image || "/favicon.ico")}" alt=""><div><strong>${escapeHTML(item.title)}</strong><a href="${escapeHTML(item.url)}" target="_blank">${escapeHTML(item.url)}</a><p>${escapeHTML(item.description || "")}</p><span>${escapeHTML(item.feed || item.type || "")}</span></div></article>`)
+			.join("");
+		$("#feedsList").innerHTML =
+			state.feeds.map(item => `<article class="list-item"><strong>${escapeHTML(item.title || "Untitled")}</strong><a href="${escapeHTML(item.url || "#")}" target="_blank">${escapeHTML(item.url || "")}</a><span>${escapeHTML(item.date || item.source || "")}</span></article>`).join("") ||
+			`<article class="list-item">暂无订阅文章</article>`;
+	}
+
+	async function load() {
+		const data = await api("list");
+		Object.assign(state, data);
+		renderStats();
+		renderArticles();
+		renderLists();
+	}
+
+	function formData(form) {
+		const data = Object.fromEntries(new FormData(form).entries());
+		for (const input of form.querySelectorAll("input[type='checkbox']")) data[input.name] = input.checked;
+		return data;
+	}
+
+	function bind() {
+		$$(".tab").forEach(tab => {
+			tab.addEventListener("click", () => {
+				$$(".tab").forEach(node => node.classList.toggle("active", node === tab));
+				$$(".panel").forEach(panel => panel.classList.toggle("active", panel.dataset.panel === tab.dataset.tab));
+			});
+		});
+
+		$("[data-action='reload']").addEventListener("click", () => load().then(() => toast("已刷新")));
+		$("#articleSearch").addEventListener("input", renderArticles);
+		$("#sectionFilter").addEventListener("change", renderArticles);
+
+		const articleForm = $("#articleForm");
+		field(articleForm, "title").addEventListener("input", () => {
+			if (!field(articleForm, "slug").value) field(articleForm, "slug").value = slugify(field(articleForm, "title").value);
+		});
+		field(articleForm, "body").addEventListener("input", () => {
+			$("#articlePreview").innerHTML = markdown(field(articleForm, "body").value);
+		});
+		$("[data-action='extract']").addEventListener("click", () => {
+			const text = field(articleForm, "body").value;
+			field(articleForm, "description").value = stripMarkdown(text).slice(0, 140);
+			field(articleForm, "tags").value = extractTags(text).join(", ");
+			$("#articlePreview").innerHTML = markdown(text);
+		});
+		articleForm.addEventListener("submit", async event => {
+			event.preventDefault();
+			const data = formData(articleForm);
+			data.tags = String(data.tags || "").split(/[,，\s]+/).filter(Boolean);
+			await api("save-article", data);
+			toast("文章已保存");
+			await load();
+		});
+
+		$("#prefaceForm").addEventListener("submit", async event => {
+			event.preventDefault();
+			await api("save-preface", formData(event.currentTarget));
+			toast("序文已保存");
+			await load();
+		});
+
+		$("#discoverForm").addEventListener("submit", async event => {
+			event.preventDefault();
+			const data = await api("discover-site", formData(event.currentTarget));
+			const form = $("#linkForm");
+			field(form, "title").value = data.title || "";
+			field(form, "url").value = data.url || "";
+			field(form, "image").value = data.image || "";
+			field(form, "feed").value = data.feed || "";
+			field(form, "description").value = data.description || "";
+			if (!field(form, "type").value) field(form, "type").value = "lifestyle";
+			toast("已发现站点信息");
+		});
+
+		$("#linkForm").addEventListener("submit", async event => {
+			event.preventDefault();
+			await api("add-link", formData(event.currentTarget));
+			toast("友链已保存");
+			await load();
+		});
+
+		$("[data-action='checkLinks']").addEventListener("click", async () => {
+			const data = await api("check-links", {});
+			state.links = state.links.map(link => {
+				const result = data.results.find(item => item.url === link.url);
+				return result ? { ...link, status: result.status } : link;
+			});
+			$("#feedsList").innerHTML = data.results.map(item => `<article class="list-item"><strong>${escapeHTML(item.title)}</strong><span>${item.ok ? "正常" : "异常"} · ${escapeHTML(item.status)}</span><a href="${escapeHTML(item.url)}" target="_blank">${escapeHTML(item.url)}</a></article>`).join("");
+			toast("检测完成");
+		});
+
+		$("[data-action='refreshFeeds']").addEventListener("click", async () => {
+			const data = await api("refresh-feeds", {});
+			state.feeds = data.items || [];
+			renderLists();
+			toast("订阅源已刷新");
+		});
+
+		$$("[data-deploy]").forEach(button => {
+			button.addEventListener("click", async () => {
+				const form = $("#deployForm");
+				$("#deployOutput").textContent = "运行中...";
+				const data = await api("deploy", { mode: button.dataset.deploy, message: field(form, "message").value });
+				$("#deployOutput").textContent = data.steps.map(step => `# ${step.step}\n${step.output || "OK"}`).join("\n\n");
+				toast("部署动作完成");
+			});
+		});
+	}
+
+	bind();
+	load().catch(error => toast(error.message));
+</script>
+
+<style>
+	.admin-shell {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		min-height: 80vh;
+	}
+
+	.admin-top,
+	.panel-head,
+	.row-actions,
+	.discover,
+	.admin-actions,
+	.filters {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.admin-top,
+	.panel-head {
+		justify-content: space-between;
+		align-items: flex-start;
+	}
+
+	.eyebrow {
+		margin: 0;
+		font: 0.78rem/1 var(--font-mono);
+		color: var(--color-secondary);
+	}
+
+	h1,
+	h2,
+	h3,
+	p {
+		margin-top: 0;
+	}
+
+	.button,
+	input,
+	select,
+	textarea {
+		border: 2px solid var(--color-weak);
+		border-radius: 6px;
+		background: var(--color-background);
+		color: var(--color-primary);
+	}
+
+	.button {
+		padding: 0.45rem 0.75rem;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.button.ghost {
+		color: var(--color-secondary);
+	}
+
+	input,
+	select,
+	textarea {
+		width: 100%;
+		padding: 0.55rem 0.6rem;
+		font: inherit;
+	}
+
+	textarea {
+		resize: vertical;
+	}
+
+	.stats {
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+
+	.stats div,
+	.workspace,
+	.editor,
+	.table-wrap,
+	.list-item,
+	.deploy-box,
+	.log,
+	.preview {
+		border: 2px solid var(--color-weak);
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--color-background), var(--color-primary) 2%);
+	}
+
+	.stats div {
+		padding: 0.8rem;
+	}
+
+	.stats span,
+	small,
+	.list-item span,
+	.panel-head p {
+		color: var(--color-secondary);
+	}
+
+	.stats strong {
+		display: block;
+		font-size: 1.6rem;
+	}
+
+	.workspace {
+		display: grid;
+		grid-template-columns: 11rem minmax(0, 1fr);
+		min-height: 60vh;
+		overflow: hidden;
+	}
+
+	.tabs {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 0.75rem;
+		border-inline-end: 2px solid var(--color-weak);
+	}
+
+	.tab {
+		text-align: start;
+		padding: 0.7rem;
+		border-radius: 6px;
+		border: 0;
+		color: var(--color-secondary);
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.tab.active {
+		color: var(--color-background);
+		background: var(--color-primary);
+	}
+
+	.panel {
+		display: none;
+		padding: 1rem;
+	}
+
+	.panel.active {
+		display: block;
+	}
+
+	.split {
+		display: grid;
+		grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);
+		gap: 1rem;
+		align-items: start;
+	}
+
+	.table-wrap {
+		overflow: auto;
+		max-height: 62vh;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.92rem;
+	}
+
+	th,
+	td {
+		padding: 0.65rem;
+		border-bottom: 1px solid var(--color-weak);
+		text-align: start;
+		vertical-align: top;
+	}
+
+	td small {
+		display: block;
+		margin-top: 0.25rem;
+		font-family: var(--font-mono);
+	}
+
+	.pill {
+		display: inline-block;
+		margin: 0.1rem;
+		padding: 0.08rem 0.35rem;
+		border-radius: 999px;
+		background: var(--color-weak);
+		font-size: 0.75rem;
+	}
+
+	.editor,
+	.deploy-box {
+		display: grid;
+		gap: 0.65rem;
+		padding: 0.9rem;
+	}
+
+	label {
+		display: grid;
+		gap: 0.3rem;
+		font-weight: 700;
+	}
+
+	.check {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.check input {
+		width: auto;
+	}
+
+	.preview {
+		padding: 0.75rem;
+		max-height: 16rem;
+		overflow: auto;
+	}
+
+	.list {
+		display: grid;
+		gap: 0.65rem;
+		max-height: 58vh;
+		overflow: auto;
+	}
+
+	.list-item {
+		padding: 0.7rem;
+	}
+
+	.list-item p {
+		margin-bottom: 0.35rem;
+	}
+
+	.link-item {
+		display: grid;
+		grid-template-columns: 2.2rem minmax(0, 1fr);
+		gap: 0.65rem;
+	}
+
+	.link-item img {
+		width: 2.2rem;
+		height: 2.2rem;
+		object-fit: cover;
+		border-radius: 6px;
+	}
+
+	.log {
+		margin-top: 1rem;
+		padding: 1rem;
+		white-space: pre-wrap;
+		max-height: 32rem;
+		overflow: auto;
+	}
+
+	.toast {
+		position: fixed;
+		inset-inline-end: 1rem;
+		inset-block-end: 1rem;
+		padding: 0.7rem 0.9rem;
+		border-radius: 8px;
+		color: var(--color-background);
+		background: var(--color-primary);
+		z-index: 20;
+	}
+
+	@media (max-width: 900px) {
+		.stats,
+		.workspace,
+		.split {
+			grid-template-columns: 1fr;
+		}
+
+		.tabs {
+			flex-direction: row;
+			overflow-x: auto;
+			border-inline-end: 0;
+			border-bottom: 2px solid var(--color-weak);
+		}
+
+		.admin-top,
+		.panel-head {
+			flex-direction: column;
+		}
+	}
+</style>

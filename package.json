@@ -30,6 +30,7 @@
 	"scripts": {
 		"new": "tsx --loader esm-loader-yaml scripts/new.ts",
 		"dev": "astro dev",
+		"admin:dev": "LOCAL_ADMIN=1 astro dev",
 		"check": "astro check",
 		"build": "astro build",
 		"preview": "wrangler dev",
