@@ -1,12 +1,13 @@
 ---
 title: 国际化配置指南
 timestamp: 2026-03-21 00:00:00+00:00
-series: Guide
-tags: [Configuration, Astro]
+series: 技术
+tags:
+  - Configuration
+  - Astro
 description: 详细介绍如何配置主题的多语言支持，包括修改默认语言、添加新语言、管理翻译文件以及配置内容目录结构。
 toc: true
 ---
-
 主题内置多语言支持，默认语言为**英文（`en`）**。
 
 国际化核心配置位于 `site.config.ts` 的 `i18n` 字段，在此处指定启用的语言列表以及默认语言：

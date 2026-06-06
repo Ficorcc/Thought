@@ -1,10 +1,12 @@
 ---
 title: Markdown 图片处理
 timestamp: 2026-02-27 00:00:00+00:00
-tags: [Content, Demo]
+tags:
+  - Content
+  - Demo
 description: 演示 Markdown 中图片引用的三种方式：相对路径、绝对路径和外部链接，展示图片优化和管理最佳实践。
+series: 技术
 ---
-
 在 Markdown 正文中插入图片，可以通过三种来源引用：
 
 ### 相对路径

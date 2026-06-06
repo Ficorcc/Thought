@@ -1,12 +1,14 @@
 ---
 title: 评论系统配置指南
 timestamp: 2026-03-23 00:00:00+00:00
-series: Comment
-tags: [Guide, Cloudflare, Database]
+series: 技术
+tags:
+  - Guide
+  - Cloudflare
+  - Database
 description: 从零开始配置 Cloudflare D1 数据库，包括创建数据库、设置连接、迁移数据等完整流程。
 toc: true
 ---
-
 本主题内置评论系统基于 Astro Actions 及 Cloudflare D1 构建，部分配置请参考[站点配置指南](/zh-cn/guide/configuration)。
 
 ## 创建 Cloudflare D1 数据库

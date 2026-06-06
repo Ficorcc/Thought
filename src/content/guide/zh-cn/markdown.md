@@ -1,10 +1,12 @@
 ---
 title: Markdown 扩展手册
 timestamp: 2025-11-24 00:00:00+00:00
-tags: [Markup, Demo]
+tags:
+  - Markup
+  - Demo
 description: 详细介绍主题中扩展的 Markdown 语法功能。
+series: 技术
 ---
-
 Astro 框架使用 [remark](https://github.com/remarkjs/remark) 作为 Markdown 引擎，在 `astro.config.ts` 中提供了相关插件配置接口。
 
 主题内置以下插件以实现语法扩展：
