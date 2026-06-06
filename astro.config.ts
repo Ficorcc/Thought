@@ -35,18 +35,14 @@ import reading from "./src/lib/reading";
 import siteConfig from "./site.config";
 
 const site = process.env.SITE ?? "https://panjinye.com";
-const isBuild = process.argv.includes("build");
-const isLocalAdmin = process.env.LOCAL_ADMIN === "1" || process.env.LOCAL_ADMIN === "true";
-const cloudflareAdapter = cloudflare({
-	inspectorPort: false,
-	imageService: "compile",
-	prerenderEnvironment: "node"
-});
-const useCloudflareAdapter = isBuild || !isLocalAdmin;
 
 // https://astro.build/config
 export default defineConfig({
-	...(useCloudflareAdapter ? { adapter: cloudflareAdapter } : {}),
+	adapter: cloudflare({
+		inspectorPort: false,
+		imageService: "compile",
+		prerenderEnvironment: "node"
+	}),
 	site,
 	trailingSlash: "never",
 	i18n: {
