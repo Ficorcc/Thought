@@ -17,6 +17,18 @@ type LinkrollItem = {
 
 const CONTENT_ROOT = "src/content";
 const ARTICLE_SECTIONS = ["note", "guide", "jotting"] as const;
+const DEFAULT_MEMOS_API_URL = "https://memos.ficor.net/api/v1/memos";
+const DEFAULT_MEMOS_API_TOKEN = "memos_pat_eNE8zsoihpvnvSKTNBQ7oz8FTBTRao01";
+const EXTRA_FEED_API_SOURCES = [
+	{
+		title: "lilog API",
+		url: "https://lilog.cn/is/index.php?action=get_user_feeds&uid=54008&limit=30&token=2bd4eea157becfd45baf299494394392"
+	},
+	{
+		title: "jh API",
+		url: "https://jh.3v.hk/api.php?action=get_all_items&uid=16&token=741afb1d210656544af0490d0824ca6e&limit=40"
+	}
+] as const;
 
 function json(data: unknown, init: ResponseInit = {}) {
 	return new Response(JSON.stringify(data), {
@@ -76,6 +88,13 @@ function normalizeSlashes(value: string) {
 	return value.replaceAll("\\", "/");
 }
 
+async function resolveContentPath(relativePath: string) {
+	const { cwd, path } = await nodeDeps();
+	const normalized = normalizeSlashes(String(relativePath || ""));
+	if (!normalized.startsWith(`${CONTENT_ROOT}/`) || normalized.includes("..")) throw new Error("Invalid content path");
+	return path.join(cwd, normalized);
+}
+
 function stripMarkdown(value: string) {
 	return value
 		.replace(/```[\s\S]*?```/g, " ")
@@ -108,6 +127,16 @@ function slugify(input: string) {
 		.replace(/-+/g, "-")
 		.replace(/^-|-$/g, "");
 	return slug || `post-${Date.now()}`;
+}
+
+function normalizeTimestamp(input?: string) {
+	const value = String(input || "").trim();
+	if (!value) return new Date().toISOString();
+	if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return `${value}:00+08:00`;
+	if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(value)) return `${value}+08:00`;
+	if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(value)) return `${value.replace(" ", "T")}:00+08:00`;
+	if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) return `${value.replace(" ", "T")}+08:00`;
+	return value;
 }
 
 function parseScalar(value: string) {
@@ -206,11 +235,15 @@ async function readArticles() {
 			const parsed = parseFrontmatter(raw);
 			const rel = normalizeSlashes(path.relative(cwd, file));
 			const locale = normalizeSlashes(path.relative(base, file)).split("/")[0] || "zh-cn";
+			const itemPath = normalizeSlashes(path.relative(path.join(base, locale), file))
+				.replace(/\.md$/, "")
+				.replace(/\/index$/, "");
 			items.push({
 				section,
 				locale,
 				path: rel,
 				slug: path.basename(file, ".md"),
+				url: `${locale === "zh-cn" ? "" : `/${locale}`}/${section}/${itemPath}`,
 				title: parsed.data.title ?? path.basename(file, ".md"),
 				timestamp: parsed.data.timestamp ?? "",
 				series: parsed.data.series ?? "",
@@ -240,30 +273,12 @@ async function readPrefaces() {
 			locale,
 			path: rel,
 			timestamp: parsed.data.timestamp ?? "",
-			text: stripMarkdown(parsed.body).slice(0, 160)
+			text: stripMarkdown(parsed.body).slice(0, 160),
+			draft: Boolean(parsed.data.draft)
 		});
 	}
 	items.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
 	return items;
-}
-
-async function readChronicle() {
-	const { cwd, fs, path } = await nodeDeps();
-	const file = path.join(cwd, CONTENT_ROOT, "information", "zh-cn", "chronicle.yaml");
-	try {
-		const raw = await fs.readFile(file, "utf-8");
-		const items: Array<{ date: string; text: string; source: string }> = [];
-		let date = "";
-		for (const line of raw.split(/\r?\n/)) {
-			const dateMatch = line.match(/^(\d{4}-\d{2}-\d{2}):/);
-			if (dateMatch) date = dateMatch[1];
-			const eventMatch = line.match(/^\s*-\s+(.+)$/);
-			if (date && eventMatch) items.push({ date, text: eventMatch[1], source: "local" });
-		}
-		return items;
-	} catch (_) {
-		return [];
-	}
 }
 
 function findLinksArraySource(raw: string) {
@@ -307,19 +322,156 @@ async function readExternalJson(url?: string, token?: string) {
 		});
 		if (!response.ok) return [];
 		const json = await response.json();
-		return Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : Array.isArray(json?.items) ? json.items : [];
+		if (Array.isArray(json)) return json;
+		if (Array.isArray(json?.data)) return json.data;
+		if (Array.isArray(json?.items)) return json.items;
+		if (Array.isArray(json?.feeds)) return json.feeds;
+		if (Array.isArray(json?.memos)) return json.memos;
+		if (Array.isArray(json?.data?.items)) return json.data.items;
+		if (Array.isArray(json?.data?.feeds)) return json.data.feeds;
+		if (Array.isArray(json?.data?.memos)) return json.data.memos;
+		if (Array.isArray(json?.result)) return json.result;
+		return [];
 	} catch (_) {
 		return [];
 	}
+}
+
+function pickFirst(...values: any[]) {
+	return (
+		values.find(value => {
+			const normalized = String(value ?? "").trim();
+			return normalized && normalized !== "undefined" && normalized !== "null";
+		}) ?? ""
+	);
+}
+
+function padDatePart(value: string) {
+	return value.padStart(2, "0");
+}
+
+function normalizedDate(year: string, month: string, day: string) {
+	const monthNumber = Number(month);
+	const dayNumber = Number(day);
+	if (monthNumber < 1 || monthNumber > 12 || dayNumber < 1 || dayNumber > 31) return "";
+	const normalizedMonth = padDatePart(month);
+	const normalizedDay = padDatePart(day);
+	const parsed = new Date(`${year}-${normalizedMonth}-${normalizedDay}T00:00:00Z`);
+	if (Number.isNaN(parsed.getTime())) return "";
+	if (parsed.getUTCFullYear() !== Number(year) || parsed.getUTCMonth() + 1 !== monthNumber || parsed.getUTCDate() !== dayNumber) return "";
+	return `${year}-${normalizedMonth}-${normalizedDay}`;
+}
+
+function dateFromUrl(value: string) {
+	const url = String(value || "");
+	const separated = url.match(/(?:^|[^\d])(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:[^\d]|$)/);
+	if (separated) return normalizedDate(separated[1], separated[2], separated[3]);
+	const compactPath = url.match(/(?:^|[^\d])(\d{4})[/-](\d{2})(\d{2})(?:[^\d]|$)/);
+	if (compactPath) return normalizedDate(compactPath[1], compactPath[2], compactPath[3]);
+	const compact = url.match(/(?:^|[^\d])(\d{4})(\d{2})(\d{2})(?:\d{0,6})(?:[^\d]|$)/);
+	if (compact) return normalizedDate(compact[1], compact[2], compact[3]);
+	return "";
+}
+
+function siteNameFromUrl(value: string) {
+	try {
+		return new URL(value).hostname.replace(/^www\./, "");
+	} catch (_) {
+		return "";
+	}
+}
+
+function normalizeFeedApiItem(item: any, fallbackSource = "api") {
+	const nestedFeed = item?.feed || item?.source_feed || {};
+	const title = pickFirst(item?.title, item?.item_title, item?.post_title, item?.name, item?.feed_title, nestedFeed?.title, "Untitled");
+	const url = pickFirst(item?.url, item?.link, item?.item_url, item?.href, item?.guid, item?.permalink, item?.feed_url, nestedFeed?.url, "");
+	const date =
+		pickFirst(item?.date, item?.pub_date, item?.published, item?.published_at, item?.pubDate, item?.created_at, item?.updated_at, item?.createdAt, item?.updatedAt, item?.createTime, item?.time, item?.timestamp, "") ||
+		dateFromUrl(String(url));
+	const source = pickFirst(item?.source_title, item?.sourceTitle, item?.feed_title, item?.feedTitle, item?.source, item?.site, item?.site_title, nestedFeed?.title, siteNameFromUrl(String(url)), fallbackSource);
+	return {
+		title: String(title),
+		url: String(url),
+		date: String(date),
+		source: String(source)
+	};
+}
+
+function normalizeMemoApiItem(item: any) {
+	return {
+		date: item.createdTs || item.createTime || item.createdAt || item.date || item.timestamp || "",
+		text: item.content || item.text || item.title || JSON.stringify(item).slice(0, 120),
+		locale: item.locale || item.lang || item.language || "",
+		source: "memos"
+	};
+}
+
+function feedKey(item: { title?: string; url?: string; date?: string }) {
+	const url = String(item.url || "").trim().toLowerCase().replace(/#.*$/, "").replace(/\/$/, "");
+	if (url) return `url:${url}`;
+	return `title:${String(item.title || "").trim().toLowerCase()}|date:${String(item.date || "").slice(0, 10)}`;
+}
+
+function dedupeFeedItems(items: Array<{ title?: string; url?: string; date?: string; source?: string }>) {
+	const seen = new Set<string>();
+	return items
+		.filter(item => item.title || item.url)
+		.filter(item => {
+			const key = feedKey(item);
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		})
+		.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+}
+
+async function readFeedApiItems() {
+	const configured = await readExternalJson(import.meta.env.FEED_API_URL, import.meta.env.FEED_API_TOKEN);
+	const extraFeeds = await Promise.all(EXTRA_FEED_API_SOURCES.map(source => readExternalJson(source.url)));
+	return [
+		...configured.map((item: any) => normalizeFeedApiItem(item, "api")),
+		...extraFeeds.flatMap((items, index) => items.map((item: any) => normalizeFeedApiItem(item, EXTRA_FEED_API_SOURCES[index].title)))
+	];
+}
+
+function feedSources(links: LinkrollItem[]) {
+	const linkFeeds = links
+		.filter(link => link.feed)
+		.map(link => ({ title: link.title || link.url, url: link.feed!, source: "link" }));
+	const configured = import.meta.env.FEED_API_URL ? [{ title: "API", url: String(import.meta.env.FEED_API_URL), source: "api" }] : [];
+	return [...linkFeeds, ...configured, ...EXTRA_FEED_API_SOURCES.map(source => ({ ...source, source: "api" }))];
+}
+
+async function readLinkFeedItems(links: LinkrollItem[]) {
+	const feeds = links.filter(link => link.feed);
+	const results = await Promise.all(
+		feeds.map(async link => {
+			const feed = link.feed!;
+			try {
+				const response = await fetch(feed, { signal: AbortSignal.timeout(10000) });
+				const xml = await response.text();
+				return parseFeedItems(xml, link.title || feed, feed);
+			} catch (_) {
+				return [{ title: "订阅源读取失败", url: feed, date: "", source: link.title || feed }];
+			}
+		})
+	);
+	return results.flat();
+}
+
+async function readAllFeedItems(links: LinkrollItem[]) {
+	const [linkItems, apiItems] = await Promise.all([readLinkFeedItems(links), readFeedApiItems()]);
+	return dedupeFeedItems([...linkItems, ...apiItems]);
 }
 
 async function listData() {
 	const articles = await readArticles();
 	const prefaces = await readPrefaces();
 	const links = await readLinkroll();
-	const chronicle = await readChronicle();
-	const memoApi = await readExternalJson(import.meta.env.MEMOS_API_URL, import.meta.env.MEMOS_TOKEN);
-	const feedApi = await readExternalJson(import.meta.env.FEED_API_URL, import.meta.env.FEED_API_TOKEN);
+	const memosApiUrl = import.meta.env.MEMOS_API_URL || DEFAULT_MEMOS_API_URL;
+	const memosApiToken = import.meta.env.MEMOS_TOKEN || DEFAULT_MEMOS_API_TOKEN;
+	const memoApi = await readExternalJson(memosApiUrl, memosApiToken);
+	const feedItems = await readAllFeedItems(links);
 	const tags = [...new Set(articles.flatMap(item => item.tags ?? []))].sort();
 	const series = [...new Set(articles.map(item => item.series).filter(Boolean))].sort();
 	return {
@@ -327,20 +479,9 @@ async function listData() {
 		articles,
 		prefaces,
 		links,
-		chronicle: [
-			...chronicle,
-			...memoApi.map((item: any) => ({
-				date: item.createdTs || item.createTime || item.createdAt || item.date || "",
-				text: item.content || item.text || item.title || JSON.stringify(item).slice(0, 120),
-				source: "api"
-			}))
-		],
-		feeds: feedApi.map((item: any) => ({
-			title: item.title,
-			url: item.url || item.link,
-			date: item.date || item.published || item.pubDate,
-			source: "api"
-		})),
+		chronicle: memoApi.map((item: any) => normalizeMemoApiItem(item)),
+		feeds: feedItems,
+		feedSources: feedSources(links),
 		tags,
 		series,
 		counts: {
@@ -351,10 +492,41 @@ async function listData() {
 			series: series.length
 		},
 		env: {
-			memosApi: Boolean(import.meta.env.MEMOS_API_URL),
-			feedApi: Boolean(import.meta.env.FEED_API_URL)
+			memosApi: Boolean(memosApiUrl),
+			feedApi: Boolean(import.meta.env.FEED_API_URL || EXTRA_FEED_API_SOURCES.length)
 		}
 	};
+}
+
+async function publishMemo(payload: any) {
+	const content = String(payload.content || "").trim();
+	if (!content) throw new Error("Memos content is required");
+	const apiUrl = import.meta.env.MEMOS_API_URL || DEFAULT_MEMOS_API_URL;
+	const token = import.meta.env.MEMOS_TOKEN || DEFAULT_MEMOS_API_TOKEN;
+	const response = await fetch(apiUrl, {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${token}`,
+			"content-type": "application/json"
+		},
+		body: JSON.stringify({
+			content,
+			visibility: "PUBLIC"
+		}),
+		signal: AbortSignal.timeout(15000)
+	});
+	const text = await response.text();
+	let memo: any = null;
+	try {
+		memo = text ? JSON.parse(text) : null;
+	} catch (_) {
+		memo = text;
+	}
+	if (!response.ok) {
+		const message = typeof memo === "object" ? memo?.message || memo?.error : memo;
+		throw new Error(message || `Memos publish failed: ${response.status}`);
+	}
+	return { ok: true, memo };
 }
 
 async function saveArticle(payload: any) {
@@ -364,9 +536,27 @@ async function saveArticle(payload: any) {
 	const title = String(payload.title || "未命名");
 	const body = String(payload.body || "");
 	const slug = slugify(payload.slug || title);
+	let existing: Frontmatter = {};
+	let previousFile: string | undefined;
+	let previousSection = "";
+	let previousLocale = "";
+	let previousSlug = "";
+	if (payload.originalPath) {
+		previousFile = await resolveContentPath(payload.originalPath);
+		const parts = normalizeSlashes(String(payload.originalPath)).split("/");
+		previousSection = parts[2] || "";
+		previousLocale = parts[3] || "";
+		previousSlug = path.basename(previousFile, ".md");
+		try {
+			existing = parseFrontmatter(await fs.readFile(previousFile, "utf-8")).data;
+		} catch (_) {
+			existing = {};
+		}
+	}
 	const data: Frontmatter = {
+		...existing,
 		title,
-		timestamp: payload.timestamp || new Date().toISOString(),
+		timestamp: payload.timestamp || existing.timestamp || new Date().toISOString(),
 		series: payload.series || undefined,
 		tags: Array.isArray(payload.tags) ? payload.tags : String(payload.tags || "").split(/[,，\s]+/).filter(Boolean),
 		description: payload.description || autoDescription(body),
@@ -376,25 +566,127 @@ async function saveArticle(payload: any) {
 	if (!data.tags.length) data.tags = autoTags(body);
 	const dir = path.join(cwd, CONTENT_ROOT, section, locale);
 	await fs.mkdir(dir, { recursive: true });
-	const file = path.join(dir, `${slug}.md`);
+	const canOverwriteOriginal = previousFile && section === previousSection && locale === previousLocale && slug === previousSlug;
+	const file: string = canOverwriteOriginal && previousFile ? previousFile : path.join(dir, `${slug}.md`);
 	await fs.writeFile(file, `${frontmatter(data)}${body.trim()}\n`);
+	if (previousFile && previousFile !== file) await fs.unlink(previousFile).catch(() => {});
 	return { ok: true, path: normalizeSlashes(path.relative(cwd, file)), slug, description: data.description, tags: data.tags };
+}
+
+async function readArticle(payload: any) {
+	const { cwd, fs, path } = await nodeDeps();
+	const file = await resolveContentPath(payload.path);
+	const raw = await fs.readFile(file, "utf-8");
+	const parsed = parseFrontmatter(raw);
+	const rel = normalizeSlashes(path.relative(cwd, file));
+	const section = rel.split("/")[2] as ContentSection;
+	const locale = rel.split("/")[3] || "zh-cn";
+	return {
+		ok: true,
+		article: {
+			section,
+			locale,
+			path: rel,
+			slug: path.basename(file, ".md"),
+			title: parsed.data.title ?? path.basename(file, ".md"),
+			timestamp: parsed.data.timestamp ?? "",
+			series: parsed.data.series ?? "",
+			tags: parsed.data.tags ?? [],
+			description: parsed.data.description ?? "",
+			toc: Boolean(parsed.data.toc),
+			draft: Boolean(parsed.data.draft),
+			body: parsed.body.trim()
+		}
+	};
+}
+
+async function deleteArticle(payload: any) {
+	const file = await resolveContentPath(payload.path);
+	const { fs } = await nodeDeps();
+	await fs.unlink(file);
+	return { ok: true };
+}
+
+async function setArticleDraft(payload: any) {
+	const { fs } = await nodeDeps();
+	const file = await resolveContentPath(payload.path);
+	const raw = await fs.readFile(file, "utf-8");
+	const parsed = parseFrontmatter(raw);
+	const data = { ...parsed.data };
+	if (payload.draft) data.draft = true;
+	else delete data.draft;
+	await fs.writeFile(file, `${frontmatter(data)}${parsed.body.trim()}\n`);
+	return { ok: true, draft: Boolean(payload.draft) };
 }
 
 async function savePreface(payload: any) {
 	const { cwd, fs, path } = await nodeDeps();
 	const locale = payload.locale || "zh-cn";
 	const body = String(payload.body || "");
-	const timestamp = payload.timestamp || new Date().toISOString();
+	const timestamp = normalizeTimestamp(payload.timestamp);
+	let existing: Frontmatter = {};
+	let previousFile: string | undefined;
+	if (payload.originalPath) {
+		previousFile = await resolveContentPath(payload.originalPath);
+		try {
+			existing = parseFrontmatter(await fs.readFile(previousFile, "utf-8")).data;
+		} catch (_) {
+			existing = {};
+		}
+	}
 	const slug = String(timestamp)
 		.replace(/[TZ:+]/g, "-")
 		.replace(/\.\d+/, "")
 		.replace(/-+$/g, "");
+	const data = {
+		...existing,
+		timestamp,
+		draft: payload.draft ? true : undefined
+	};
 	const dir = path.join(cwd, CONTENT_ROOT, "preface", locale);
 	await fs.mkdir(dir, { recursive: true });
 	const file = path.join(dir, `${slug}.md`);
-	await fs.writeFile(file, `${frontmatter({ timestamp })}${body.trim()}\n`);
+	await fs.writeFile(file, `${frontmatter(data)}${body.trim()}\n`);
+	if (previousFile && previousFile !== file) await fs.unlink(previousFile).catch(() => {});
 	return { ok: true, path: normalizeSlashes(path.relative(cwd, file)) };
+}
+
+async function readPreface(payload: any) {
+	const { cwd, fs, path } = await nodeDeps();
+	const file = await resolveContentPath(payload.path);
+	const raw = await fs.readFile(file, "utf-8");
+	const parsed = parseFrontmatter(raw);
+	const rel = normalizeSlashes(path.relative(cwd, file));
+	const parts = rel.split("/");
+	return {
+		ok: true,
+		preface: {
+			locale: parts[3] || "zh-cn",
+			path: rel,
+			timestamp: parsed.data.timestamp ?? "",
+			draft: Boolean(parsed.data.draft),
+			body: parsed.body.trim()
+		}
+	};
+}
+
+async function deletePreface(payload: any) {
+	const { fs } = await nodeDeps();
+	const file = await resolveContentPath(payload.path);
+	await fs.unlink(file);
+	return { ok: true };
+}
+
+async function setPrefaceDraft(payload: any) {
+	const { fs } = await nodeDeps();
+	const file = await resolveContentPath(payload.path);
+	const raw = await fs.readFile(file, "utf-8");
+	const parsed = parseFrontmatter(raw);
+	const data = { ...parsed.data };
+	if (payload.draft) data.draft = true;
+	else delete data.draft;
+	await fs.writeFile(file, `${frontmatter(data)}${parsed.body.trim()}\n`);
+	return { ok: true, draft: Boolean(payload.draft) };
 }
 
 function absolutize(base: string, href: string | null | undefined) {
@@ -436,6 +728,7 @@ async function discoverSite(payload: any) {
 
 async function addLink(payload: any) {
 	const links = await readLinkroll();
+	const originalUrl = String(payload.originalUrl || "").trim();
 	const item: LinkrollItem = {
 		title: String(payload.title || payload.url || "未命名"),
 		url: String(payload.url),
@@ -444,32 +737,57 @@ async function addLink(payload: any) {
 		description: payload.description || "",
 		feed: payload.feed || undefined
 	};
-	const index = links.findIndex(link => link.url === item.url);
+	const index = links.findIndex(link => link.url === (originalUrl || item.url));
 	if (index >= 0) links[index] = { ...links[index], ...item };
 	else links.push(item);
 	await writeLinkroll(links);
 	return { ok: true, item, count: links.length };
 }
 
+async function readLink(payload: any) {
+	const links = await readLinkroll();
+	const url = String(payload.url || "");
+	const item = links.find(link => link.url === url);
+	if (!item) throw new Error("Link not found");
+	return { ok: true, item };
+}
+
+async function deleteLink(payload: any) {
+	const links = await readLinkroll();
+	const url = String(payload.url || "");
+	const next = links.filter(link => link.url !== url);
+	if (next.length === links.length) throw new Error("Link not found");
+	await writeLinkroll(next);
+	return { ok: true, count: next.length };
+}
+
 async function checkLinks() {
 	const links = await readLinkroll();
-	const results = [];
-	for (const link of links) {
-		try {
-			const response = await fetch(link.url, { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(8000) });
-			results.push({ url: link.url, title: link.title, status: response.status, ok: response.ok });
-		} catch (error: any) {
-			results.push({ url: link.url, title: link.title, status: error?.message ?? "failed", ok: false });
-		}
-	}
+	const results = await Promise.all(links.map(checkLink));
 	return { ok: true, results };
 }
 
-function parseFeedItems(xml: string, source: string) {
+async function checkLink(link: LinkrollItem) {
+	const url = String(link.url || "").trim();
+	if (!url) return { url, title: link.title, status: "missing url", ok: false };
+	for (const method of ["HEAD", "GET"] as const) {
+		try {
+			const response = await fetch(url, { method, redirect: "follow", signal: AbortSignal.timeout(5000) });
+			if (method === "HEAD" && [405, 403, 501].includes(response.status)) continue;
+			return { url, title: link.title, status: response.status, ok: response.ok };
+		} catch (error: any) {
+			if (method === "HEAD") continue;
+			return { url, title: link.title, status: error?.message ?? "failed", ok: false };
+		}
+	}
+	return { url, title: link.title, status: "failed", ok: false };
+}
+
+function parseFeedItems(xml: string, source: string, fallbackUrl = source) {
 	const chunks = xml.match(/<item[\s\S]*?<\/item>|<entry[\s\S]*?<\/entry>/gi) ?? [];
 	return chunks.slice(0, 8).map(chunk => ({
 		title: htmlAttr(chunk, /<title[^>]*><!\[CDATA\[([\s\S]*?)]]><\/title>/i) || htmlAttr(chunk, /<title[^>]*>([\s\S]*?)<\/title>/i) || "Untitled",
-		url: htmlAttr(chunk, /<link[^>]*href=["']([^"']+)["'][^>]*>/i) || htmlAttr(chunk, /<link[^>]*>([\s\S]*?)<\/link>/i) || source,
+		url: htmlAttr(chunk, /<link[^>]*href=["']([^"']+)["'][^>]*>/i) || htmlAttr(chunk, /<link[^>]*>([\s\S]*?)<\/link>/i) || fallbackUrl,
 		date: htmlAttr(chunk, /<pubDate[^>]*>([\s\S]*?)<\/pubDate>/i) || htmlAttr(chunk, /<updated[^>]*>([\s\S]*?)<\/updated>/i) || "",
 		source
 	}));
@@ -477,29 +795,10 @@ function parseFeedItems(xml: string, source: string) {
 
 async function refreshFeeds() {
 	const links = await readLinkroll();
-	const feeds = links.map(link => link.feed).filter(Boolean) as string[];
-	const results = [];
-	for (const feed of feeds) {
-		try {
-			const response = await fetch(feed, { signal: AbortSignal.timeout(10000) });
-			const xml = await response.text();
-			results.push(...parseFeedItems(xml, feed));
-		} catch (_) {
-			results.push({ title: "订阅源读取失败", url: feed, date: "", source: feed });
-		}
-	}
-	const apiItems = await readExternalJson(import.meta.env.FEED_API_URL, import.meta.env.FEED_API_TOKEN);
 	return {
 		ok: true,
-		items: [
-			...results,
-			...apiItems.map((item: any) => ({
-				title: item.title,
-				url: item.url || item.link,
-				date: item.date || item.published || item.pubDate,
-				source: "api"
-			}))
-		]
+		items: await readAllFeedItems(links),
+		feedSources: feedSources(links)
 	};
 }
 
@@ -549,14 +848,32 @@ async function handle(action: string, request: Request) {
 	switch (action) {
 		case "list":
 			return json(await listData());
+		case "read-article":
+			return json(await readArticle(body));
 		case "save-article":
 			return json(await saveArticle(body));
+		case "delete-article":
+			return json(await deleteArticle(body));
+		case "set-article-draft":
+			return json(await setArticleDraft(body));
+		case "read-preface":
+			return json(await readPreface(body));
 		case "save-preface":
 			return json(await savePreface(body));
+		case "delete-preface":
+			return json(await deletePreface(body));
+		case "set-preface-draft":
+			return json(await setPrefaceDraft(body));
+		case "publish-memo":
+			return json(await publishMemo(body));
 		case "discover-site":
 			return json(await discoverSite(body));
+		case "read-link":
+			return json(await readLink(body));
 		case "add-link":
 			return json(await addLink(body));
+		case "delete-link":
+			return json(await deleteLink(body));
 		case "check-links":
 			return json(await checkLinks());
 		case "refresh-feeds":

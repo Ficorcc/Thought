@@ -20,6 +20,8 @@ const t = i18nit(locale);
 // Get preface content for current locale, sorted by timestamp (latest first)
 const prefaces = (
 	await getCollection("preface", preface => {
+		if (preface.data.draft) return false;
+
 		// Handle single locale setup
 		if (monolocale) return true;
 

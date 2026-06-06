@@ -1,10 +1,15 @@
 ---
 export const prerender = false;
 
+import config from "$config";
 import Base from "$layouts/Base.astro";
+
+const firstPathPart = Astro.url.pathname.split("/").filter(Boolean)[0];
+const pageLocale = config.i18n.locales.includes(firstPathPart as any) ? firstPathPart : config.i18n.defaultLocale;
+const homeHref = pageLocale === config.i18n.defaultLocale ? "/" : `/${pageLocale}`;
 ---
 
-<Base title="后台管理" locale="zh-cn">
+<Base title="后台管理" locale={pageLocale}>
 	<main class="admin-shell">
 		<header class="admin-top">
 			<div>
@@ -13,7 +18,7 @@ import Base from "$layouts/Base.astro";
 			</div>
 			<div class="admin-actions">
 				<button data-action="reload" class="button">刷新</button>
-				<a href="/" class="button ghost">返回网站</a>
+				<a href={homeHref} class="button ghost">返回网站</a>
 			</div>
 		</header>
 
@@ -22,46 +27,56 @@ import Base from "$layouts/Base.astro";
 		<div class="workspace">
 			<nav class="tabs" aria-label="后台模块">
 				<button class="tab active" data-tab="content">内容</button>
-				<button class="tab" data-tab="preface">序文 / Memos</button>
-				<button class="tab" data-tab="links">友链 / 订阅</button>
+				<button class="tab" data-tab="preface">序文</button>
+				<button class="tab" data-tab="memos">Memos</button>
+				<button class="tab" data-tab="links">友链</button>
+				<button class="tab" data-tab="feeds">订阅</button>
 				<button class="tab" data-tab="deploy">部署</button>
 			</nav>
 
 			<section class="panel active" data-panel="content">
 				<div class="panel-head">
-					<div>
+					<div class="panel-title">
 						<h2>文章管理</h2>
 						<p>文记、指南、随笔统一管理，支持目录、分类、标签和新建草稿。</p>
-					</div>
-					<div class="filters">
-						<select id="sectionFilter">
-							<option value="">全部栏目</option>
-							<option value="note">文记</option>
-							<option value="guide">指南</option>
-							<option value="jotting">随笔</option>
-						</select>
-						<input id="articleSearch" type="search" placeholder="搜索标题、标签、分类" />
+						<div class="panel-actions">
+							<div class="filters">
+								<select id="sectionFilter">
+									<option value="">全部栏目</option>
+									<option value="note">文记</option>
+									<option value="guide">指南</option>
+									<option value="jotting">随笔</option>
+								</select>
+								<input id="articleSearch" type="search" placeholder="搜索标题、标签、分类" />
+							</div>
+							<button type="button" class="button" data-action="newArticle">新建文章</button>
+						</div>
 					</div>
 				</div>
 
-				<div class="split">
-					<div class="table-wrap">
-						<table>
-							<thead>
-								<tr>
-									<th>标题</th>
-									<th>栏目</th>
-									<th>分类</th>
-									<th>标签</th>
-									<th>目录</th>
-								</tr>
-							</thead>
-							<tbody id="articleRows"></tbody>
-						</table>
+				<div class="content-layout" id="articleWorkspace">
+					<div class="article-list-page">
+						<div class="table-wrap">
+							<table>
+								<thead>
+									<tr>
+										<th>标题</th>
+										<th>分类</th>
+										<th>标签</th>
+										<th>操作</th>
+									</tr>
+								</thead>
+								<tbody id="articleRows"></tbody>
+							</table>
+						</div>
 					</div>
 
-					<form id="articleForm" class="editor">
-						<h3>新建文章</h3>
+					<form id="articleForm" class="editor article-editor article-editor-page">
+						<div class="editor-head">
+							<h3 id="articleEditorTitle">新建文章</h3>
+							<button type="button" class="button ghost" data-action="cancelArticle">返回列表</button>
+						</div>
+						<input type="hidden" name="originalPath" />
 						<label>栏目<select name="section"><option value="note">文记</option><option value="guide">指南</option><option value="jotting">随笔</option></select></label>
 						<label>语言<select name="locale"><option value="zh-cn">zh-cn</option><option value="en">en</option></select></label>
 						<label>标题<input name="title" required placeholder="输入标题后自动生成 slug" /></label>
@@ -74,7 +89,7 @@ import Base from "$layouts/Base.astro";
 						<label>正文<textarea name="body" rows="13" placeholder="Markdown 正文"></textarea></label>
 						<div class="row-actions">
 							<button type="button" class="button ghost" data-action="extract">提取摘要和标签</button>
-							<button type="submit" class="button">保存文章</button>
+							<button type="submit" class="button" data-article-submit>保存文章</button>
 						</div>
 						<article class="preview markdown" id="articlePreview"></article>
 					</form>
@@ -83,45 +98,100 @@ import Base from "$layouts/Base.astro";
 
 			<section class="panel" data-panel="preface">
 				<div class="panel-head">
-					<div>
-						<h2>序文与 Memos</h2>
-						<p>本地序文和 Memos API 合并显示；新建序文会写入 `src/content/preface`。</p>
+					<div class="panel-title">
+						<h2>序文</h2>
+						<p>管理当前语言的本地序文，可新建、编辑和调整发布状态。</p>
+						<div class="panel-actions">
+							<button type="button" class="button" data-action="newPreface">新建序文</button>
+						</div>
 					</div>
 				</div>
-				<div class="split">
-					<div>
-						<h3>时间线</h3>
-						<div id="memosList" class="list"></div>
+				<div class="content-layout" id="prefaceWorkspace">
+					<div class="table-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th>发布时间</th>
+									<th>内容</th>
+									<th>操作</th>
+								</tr>
+							</thead>
+							<tbody id="prefaceRows"></tbody>
+						</table>
 					</div>
-					<form id="prefaceForm" class="editor">
-						<h3>新建序文</h3>
+					<form id="prefaceForm" class="editor preface-editor">
+						<div class="editor-head">
+							<h3 id="prefaceEditorTitle">新建序文</h3>
+							<button type="button" class="button ghost" data-action="cancelPreface">收起</button>
+						</div>
+						<input type="hidden" name="originalPath" />
 						<label>语言<select name="locale"><option value="zh-cn">zh-cn</option><option value="en">en</option></select></label>
 						<label>时间<input name="timestamp" type="datetime-local" /></label>
 						<label>内容<textarea name="body" rows="12" placeholder="写一段序文或动态"></textarea></label>
-						<button type="submit" class="button">保存序文</button>
+						<label class="check"><input type="checkbox" name="draft" /> 存为草稿</label>
+						<button type="submit" class="button" data-preface-submit>保存序文</button>
 					</form>
+				</div>
+			</section>
+
+			<section class="panel" data-panel="memos">
+				<div class="panel-head">
+					<div class="panel-title">
+						<h2>Memos</h2>
+						<p>只显示当前语言的 Memos API 内容。</p>
+					</div>
+				</div>
+
+				<form id="memoForm" class="editor memo-editor">
+					<label>发布内容<textarea name="content" rows="5" placeholder="写一条新的 Memos"></textarea></label>
+					<div class="row-actions">
+						<button type="submit" class="button" data-memo-submit>发布 Memos</button>
+					</div>
+				</form>
+
+				<div class="table-wrap">
+					<table>
+						<thead>
+							<tr>
+								<th>发布时间</th>
+								<th>内容</th>
+							</tr>
+						</thead>
+						<tbody id="memosRows"></tbody>
+					</table>
 				</div>
 			</section>
 
 			<section class="panel" data-panel="links">
 				<div class="panel-head">
-					<div>
-						<h2>友链与订阅源</h2>
-						<p>输入域名自动发现名称、描述、头像和订阅地址；本地友链与订阅 API 合并显示。</p>
-					</div>
-					<div class="row-actions">
-						<button class="button ghost" data-action="checkLinks">检测友链</button>
-						<button class="button ghost" data-action="refreshFeeds">刷新订阅</button>
+					<div class="panel-title">
+						<h2>友链</h2>
+						<p>管理网站连结，添加时可输入域名自动发现名称、头像和订阅地址。</p>
+						<div class="panel-actions">
+							<button type="button" class="button ghost" data-action="checkLinks">检测友链</button>
+							<button type="button" class="button" data-action="addLink">添加友链</button>
+						</div>
 					</div>
 				</div>
 
-				<div class="split">
-					<div>
+				<div class="link-layout" id="linkWorkspace">
+					<div class="link-list-page">
+						<div id="linksList" class="link-grid"></div>
+					</div>
+					<div class="link-add-page">
+						<div class="editor-head">
+							<div>
+								<h3>添加友链</h3>
+								<p>输入域名后可自动发现网站名称、头像和订阅地址。</p>
+							</div>
+							<button type="button" class="button ghost" data-action="cancelLink">返回列表</button>
+						</div>
 						<form id="discoverForm" class="discover">
 							<input name="url" placeholder="example.com 或 https://example.com" />
 							<button class="button" type="submit">发现</button>
 						</form>
 						<form id="linkForm" class="editor compact">
+							<input type="hidden" name="originalUrl" />
 							<label>名称<input name="title" /></label>
 							<label>网址<input name="url" /></label>
 							<label>类型<input name="type" placeholder="lifestyle / technology / creative" /></label>
@@ -131,13 +201,21 @@ import Base from "$layouts/Base.astro";
 							<button class="button" type="submit">保存友链</button>
 						</form>
 					</div>
-					<div>
-						<h3>友链</h3>
-						<div id="linksList" class="list"></div>
-						<h3>订阅文章</h3>
-						<div id="feedsList" class="list"></div>
+				</div>
+			</section>
+
+			<section class="panel" data-panel="feeds">
+				<div class="panel-head">
+					<div class="panel-title">
+						<h2>订阅</h2>
+						<p>只显示友链订阅源和订阅 API 刷新的文章更新。</p>
+						<div class="panel-actions">
+							<button type="button" class="button" data-action="refreshFeeds">刷新订阅</button>
+						</div>
 					</div>
 				</div>
+
+				<div id="feedsList" class="feed-list"></div>
 			</section>
 
 			<section class="panel" data-panel="deploy">
@@ -175,14 +253,21 @@ import Base from "$layouts/Base.astro";
 		links: [],
 		chronicle: [],
 		feeds: [],
+		feedSources: [],
 		tags: [],
 		series: [],
-		counts: {}
+		counts: {},
+		currentLocale: currentLocaleFromPath()
 	};
 
 	const $ = selector => document.querySelector(selector);
 	const $$ = selector => Array.from(document.querySelectorAll(selector));
 	const field = (form, name) => form.elements.namedItem(name);
+
+	function currentLocaleFromPath() {
+		const first = location.pathname.split("/").filter(Boolean)[0];
+		return first === "en" ? "en" : "zh-cn";
+	}
 
 	function toast(message) {
 		const node = $("#toast");
@@ -243,13 +328,89 @@ import Base from "$layouts/Base.astro";
 			.replace(/^(.+)$/s, "<p>$1</p>");
 	}
 
+	function openArticleEditor(mode = "new") {
+		$("#articleEditorTitle").textContent = mode === "edit" ? "编辑文章" : "新建文章";
+		$("[data-article-submit]").textContent = mode === "edit" ? "保存修改" : "保存文章";
+		$("#articleWorkspace").classList.add("editing");
+	}
+
+	function openPrefaceEditor(mode = "new") {
+		$("#prefaceEditorTitle").textContent = mode === "edit" ? "编辑序文" : "新建序文";
+		$("[data-preface-submit]").textContent = mode === "edit" ? "保存修改" : "保存序文";
+		$("#prefaceWorkspace").classList.add("editing");
+	}
+
+	function tagList(tags) {
+		return Array.isArray(tags) ? tags : String(tags || "").split(/[,，、\s]+/).filter(Boolean);
+	}
+
+	function dateOnly(value) {
+		const raw = String(value || "").trim();
+		if (!raw || raw === "undefined" || raw === "null") return "";
+		const match = raw.match(/\d{4}-\d{2}-\d{2}/);
+		return match ? match[0] : raw;
+	}
+
+	function datetimeLocal(value) {
+		const raw = String(value || "").trim();
+		const match = raw.match(/(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+		return match ? `${match[1]}T${match[2]}` : "";
+	}
+
+	function linkStatus(item) {
+		if (item.status === undefined || item.status === null || item.status === "") return { text: "未检测", ok: false, pending: true };
+		const status = Number(item.status);
+		if (Number.isFinite(status)) return { text: status >= 200 && status < 400 ? `正常 ${status}` : `异常 ${status}`, ok: status >= 200 && status < 400 };
+		return { text: String(item.status), ok: false };
+	}
+
+	function normalizeLocale(value) {
+		const raw = String(value || "").toLowerCase().replace("_", "-");
+		if (raw.startsWith("zh")) return "zh-cn";
+		if (raw.startsWith("en")) return "en";
+		return "";
+	}
+
+	function inferTextLocale(value) {
+		return /[\u3400-\u9fff]/.test(String(value || "")) ? "zh-cn" : "en";
+	}
+
+	function itemLocale(item) {
+		return normalizeLocale(item?.locale || item?.lang || item?.language);
+	}
+
+	function localizedArticles() {
+		return state.articles.filter(item => itemLocale(item) === state.currentLocale);
+	}
+
+	function localizedPrefaces() {
+		return state.prefaces.filter(item => itemLocale(item) === state.currentLocale);
+	}
+
+	function localizedMemos() {
+		return state.chronicle.filter(item => {
+			const locale = itemLocale(item);
+			if (locale) return locale === state.currentLocale;
+			return inferTextLocale(item.text || item.title || "") === state.currentLocale;
+		});
+	}
+
+	function localizedTags() {
+		return [...new Set(localizedArticles().flatMap(item => tagList(item.tags)))].sort();
+	}
+
+	function localizedSeries() {
+		return [...new Set(localizedArticles().map(item => item.series).filter(Boolean))].sort();
+	}
+
 	function renderStats() {
 		$("#stats").innerHTML = [
-			["文章", state.counts.articles || 0],
-			["序文", state.counts.prefaces || 0],
+			["文章", localizedArticles().length],
+			["序文", localizedPrefaces().length],
+			["Memos", localizedMemos().length],
 			["友链", state.counts.links || 0],
-			["标签", state.counts.tags || 0],
-			["分类", state.counts.series || 0]
+			["标签", localizedTags().length],
+			["分类", localizedSeries().length]
 		]
 			.map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
 			.join("");
@@ -258,7 +419,7 @@ import Base from "$layouts/Base.astro";
 	function renderArticles() {
 		const keyword = $("#articleSearch").value.trim().toLowerCase();
 		const section = $("#sectionFilter").value;
-		const rows = state.articles.filter(item => {
+		const rows = localizedArticles().filter(item => {
 			const haystack = `${item.title} ${item.series} ${(item.tags || []).join(" ")}`.toLowerCase();
 			return (!section || item.section === section) && (!keyword || haystack.includes(keyword));
 		});
@@ -266,30 +427,101 @@ import Base from "$layouts/Base.astro";
 			rows
 				.slice(0, 120)
 				.map(
-					item => `<tr>
-					<td><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.path)}</small></td>
-					<td>${item.section}</td>
+					item => `<tr class="article-row">
+					<td>
+						<a class="article-title-link" href="${escapeHTML(item.url || `/${item.section}/${item.slug}`)}" target="_blank">${escapeHTML(item.title)}</a>
+						${item.draft ? `<span class="draft-badge">草稿</span>` : ""}
+					</td>
 					<td>${escapeHTML(item.series || "-")}</td>
-					<td>${(item.tags || []).map(tag => `<span class="pill">${escapeHTML(tag)}</span>`).join("")}</td>
-					<td>${(item.headings || []).length} 项</td>
+					<td>${tagList(item.tags).map(tag => escapeHTML(tag)).join("、") || "-"}</td>
+					<td>
+						<div class="item-actions">
+							<button type="button" class="button ghost mini" data-article-action="edit" data-path="${escapeHTML(item.path)}">编辑</button>
+							<button type="button" class="button ghost mini danger" data-article-action="delete" data-path="${escapeHTML(item.path)}">删除</button>
+							<button type="button" class="button ghost mini" data-article-action="draft" data-path="${escapeHTML(item.path)}">草稿</button>
+							<button type="button" class="button ghost mini" data-article-action="publish" data-path="${escapeHTML(item.path)}">发布</button>
+						</div>
+					</td>
 				</tr>`
 				)
-				.join("") || `<tr><td colspan="5">没有匹配内容</td></tr>`;
+				.join("") || `<tr><td colspan="4">没有匹配内容</td></tr>`;
+	}
+
+	function renderPrefaces() {
+		const rows = localizedPrefaces();
+		$("#prefaceRows").innerHTML =
+			rows
+				.sort((a, b) => String(b.timestamp || b.date || "").localeCompare(String(a.timestamp || a.date || "")))
+				.slice(0, 120)
+				.map(item => {
+					const actions = `<div class="item-actions">
+							<button type="button" class="button ghost mini" data-preface-action="edit" data-path="${escapeHTML(item.path)}">编辑</button>
+							<button type="button" class="button ghost mini danger" data-preface-action="delete" data-path="${escapeHTML(item.path)}">删除</button>
+							<button type="button" class="button ghost mini" data-preface-action="draft" data-path="${escapeHTML(item.path)}">草稿</button>
+							<button type="button" class="button ghost mini" data-preface-action="publish" data-path="${escapeHTML(item.path)}">发布</button>
+						</div>`;
+					return `<tr class="preface-row">
+						<td>${escapeHTML(dateOnly(item.timestamp || item.date))}</td>
+						<td>
+							${item.draft ? `<span class="draft-badge">草稿</span>` : ""}
+							${escapeHTML(item.text || "")}
+						</td>
+						<td>${actions}</td>
+					</tr>`;
+				})
+				.join("") || `<tr><td colspan="3">暂无序文</td></tr>`;
+	}
+
+	function renderMemos() {
+		const rows = localizedMemos();
+		$("#memosRows").innerHTML =
+			rows
+				.sort((a, b) => String(b.timestamp || b.date || "").localeCompare(String(a.timestamp || a.date || "")))
+				.slice(0, 120)
+				.map(item => `<tr class="preface-row">
+					<td>${escapeHTML(dateOnly(item.timestamp || item.date))}</td>
+					<td>${escapeHTML(item.text || item.title || "")}</td>
+				</tr>`)
+				.join("") || `<tr><td colspan="2">暂无 Memos</td></tr>`;
 	}
 
 	function renderLists() {
-		$("#tagList").innerHTML = state.tags.map(tag => `<option value="${escapeHTML(tag)}"></option>`).join("");
-		$("#seriesList").innerHTML = state.series.map(series => `<option value="${escapeHTML(series)}"></option>`).join("");
-		$("#memosList").innerHTML = [...state.prefaces.map(item => ({ ...item, source: "preface", text: item.text })), ...state.chronicle]
-			.slice(0, 80)
-			.map(item => `<article class="list-item"><strong>${escapeHTML(item.date || item.timestamp || "")}</strong><p>${escapeHTML(item.text || "")}</p><span>${escapeHTML(item.source || item.path || "local")}</span></article>`)
-			.join("");
-		$("#linksList").innerHTML = state.links
-			.map(item => `<article class="list-item link-item"><img src="${escapeHTML(item.image || "/favicon.ico")}" alt=""><div><strong>${escapeHTML(item.title)}</strong><a href="${escapeHTML(item.url)}" target="_blank">${escapeHTML(item.url)}</a><p>${escapeHTML(item.description || "")}</p><span>${escapeHTML(item.feed || item.type || "")}</span></div></article>`)
-			.join("");
-		$("#feedsList").innerHTML =
-			state.feeds.map(item => `<article class="list-item"><strong>${escapeHTML(item.title || "Untitled")}</strong><a href="${escapeHTML(item.url || "#")}" target="_blank">${escapeHTML(item.url || "")}</a><span>${escapeHTML(item.date || item.source || "")}</span></article>`).join("") ||
-			`<article class="list-item">暂无订阅文章</article>`;
+		$("#tagList").innerHTML = localizedTags().map(tag => `<option value="${escapeHTML(tag)}"></option>`).join("");
+		$("#seriesList").innerHTML = localizedSeries().map(series => `<option value="${escapeHTML(series)}"></option>`).join("");
+		renderPrefaces();
+		renderMemos();
+		$("#linksList").innerHTML =
+			state.links
+				.map(item => {
+					const status = linkStatus(item);
+					return `<article class="link-card">
+						<img src="${escapeHTML(item.image || "/favicon.ico")}" alt="">
+						<div class="link-card-body">
+							<a class="link-card-title" href="${escapeHTML(item.url || "#")}" target="_blank">${escapeHTML(item.title || item.url || "未命名")}</a>
+							<p>${escapeHTML(item.description || item.type || "")}</p>
+							<span class="link-status ${status.ok ? "ok" : ""} ${status.pending ? "pending" : ""}">${escapeHTML(status.text)}</span>
+						</div>
+						<div class="item-actions link-actions">
+							<button type="button" class="button ghost mini" data-link-action="edit" data-url="${escapeHTML(item.url)}">编辑</button>
+							<button type="button" class="button ghost mini danger" data-link-action="delete" data-url="${escapeHTML(item.url)}">删除</button>
+						</div>
+					</article>`;
+				})
+				.join("") || `<article class="link-card empty">暂无友链</article>`;
+		const feedsList = $("#feedsList");
+		if (feedsList) {
+			feedsList.innerHTML =
+				state.feeds.map(item => `<article class="feed-item">
+					<div>
+						<a href="${escapeHTML(item.url || "#")}" target="_blank">${escapeHTML(item.title || "Untitled")}</a>
+						<span class="feed-meta">
+							${item.source ? `<span>${escapeHTML(item.source)}</span>` : ""}
+							<time>${escapeHTML(dateOnly(item.date || "") || "未知")}</time>
+						</span>
+					</div>
+				</article>`).join("") ||
+				`<article class="list-item">暂无订阅文章</article>`;
+		}
 	}
 
 	async function load() {
@@ -306,6 +538,48 @@ import Base from "$layouts/Base.astro";
 		return data;
 	}
 
+	function fillArticleForm(article) {
+		const form = $("#articleForm");
+		field(form, "originalPath").value = article.path || "";
+		field(form, "section").value = article.section || "note";
+		field(form, "locale").value = article.locale || "zh-cn";
+		field(form, "title").value = article.title || "";
+		field(form, "slug").value = article.slug || "";
+		field(form, "series").value = article.series || "";
+		field(form, "tags").value = tagList(article.tags).join(", ");
+		field(form, "description").value = article.description || "";
+		field(form, "toc").checked = Boolean(article.toc);
+		field(form, "draft").checked = Boolean(article.draft);
+		field(form, "body").value = article.body || "";
+		$("#articlePreview").innerHTML = markdown(article.body || "");
+	}
+
+	function fillPrefaceForm(preface) {
+		const form = $("#prefaceForm");
+		field(form, "originalPath").value = preface.path || "";
+		field(form, "locale").value = preface.locale || "zh-cn";
+		field(form, "timestamp").value = datetimeLocal(preface.timestamp);
+		field(form, "body").value = preface.body || "";
+		field(form, "draft").checked = Boolean(preface.draft);
+	}
+
+	function openLinkEditor(mode = "new") {
+		$(".link-add-page h3").textContent = mode === "edit" ? "编辑友链" : "添加友链";
+		$("#linkForm button[type='submit']").textContent = mode === "edit" ? "保存修改" : "保存友链";
+		$("#linkWorkspace").classList.add("adding");
+	}
+
+	function fillLinkForm(link) {
+		const form = $("#linkForm");
+		field(form, "originalUrl").value = link.url || "";
+		field(form, "title").value = link.title || "";
+		field(form, "url").value = link.url || "";
+		field(form, "type").value = link.type || "";
+		field(form, "image").value = link.image || "";
+		field(form, "feed").value = link.feed || "";
+		field(form, "description").value = link.description || "";
+	}
+
 	function bind() {
 		$$(".tab").forEach(tab => {
 			tab.addEventListener("click", () => {
@@ -319,6 +593,19 @@ import Base from "$layouts/Base.astro";
 		$("#sectionFilter").addEventListener("change", renderArticles);
 
 		const articleForm = $("#articleForm");
+		const articleWorkspace = $("#articleWorkspace");
+		$("[data-action='newArticle']").addEventListener("click", () => {
+			articleForm.reset();
+			field(articleForm, "originalPath").value = "";
+			field(articleForm, "locale").value = state.currentLocale;
+			$("#articlePreview").innerHTML = "";
+			openArticleEditor("new");
+			field(articleForm, "title").focus();
+			articleWorkspace.scrollIntoView({ behavior: "smooth", block: "start" });
+		});
+		$("[data-action='cancelArticle']").addEventListener("click", () => {
+			articleWorkspace.classList.remove("editing");
+		});
 		field(articleForm, "title").addEventListener("input", () => {
 			if (!field(articleForm, "slug").value) field(articleForm, "slug").value = slugify(field(articleForm, "title").value);
 		});
@@ -334,10 +621,42 @@ import Base from "$layouts/Base.astro";
 		articleForm.addEventListener("submit", async event => {
 			event.preventDefault();
 			const data = formData(articleForm);
-			data.tags = String(data.tags || "").split(/[,，\s]+/).filter(Boolean);
+			data.tags = String(data.tags || "").split(/[,，、\s]+/).filter(Boolean);
 			await api("save-article", data);
 			toast("文章已保存");
 			await load();
+			articleForm.reset();
+			field(articleForm, "originalPath").value = "";
+			$("#articlePreview").innerHTML = "";
+			articleWorkspace.classList.remove("editing");
+		});
+
+		$("#articleRows").addEventListener("click", async event => {
+			const button = event.target.closest("[data-article-action]");
+			if (!button) return;
+			const path = button.dataset.path;
+			if (!path) return;
+			const action = button.dataset.articleAction;
+			if (action === "edit") {
+				const data = await api("read-article", { path });
+				fillArticleForm(data.article);
+				openArticleEditor("edit");
+				field(articleForm, "title").focus();
+				articleWorkspace.scrollIntoView({ behavior: "smooth", block: "start" });
+				return;
+			}
+			if (action === "delete") {
+				if (!confirm("确定要删除这篇文章吗？这个操作会删除 Markdown 文件。")) return;
+				await api("delete-article", { path });
+				toast("文章已删除");
+				await load();
+				return;
+			}
+			if (action === "draft" || action === "publish") {
+				await api("set-article-draft", { path, draft: action === "draft" });
+				toast(action === "draft" ? "已设为草稿" : "已发布");
+				await load();
+			}
 		});
 
 		$("#prefaceForm").addEventListener("submit", async event => {
@@ -345,6 +664,75 @@ import Base from "$layouts/Base.astro";
 			await api("save-preface", formData(event.currentTarget));
 			toast("序文已保存");
 			await load();
+			event.currentTarget.reset();
+			field(event.currentTarget, "originalPath").value = "";
+			$("#prefaceWorkspace").classList.remove("editing");
+		});
+
+		const prefaceForm = $("#prefaceForm");
+		const prefaceWorkspace = $("#prefaceWorkspace");
+		$("[data-action='newPreface']").addEventListener("click", () => {
+			prefaceForm.reset();
+			field(prefaceForm, "originalPath").value = "";
+			field(prefaceForm, "locale").value = state.currentLocale;
+			openPrefaceEditor("new");
+			field(prefaceForm, "body").focus();
+			prefaceForm.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "end" });
+		});
+		$("[data-action='cancelPreface']").addEventListener("click", () => {
+			prefaceWorkspace.classList.remove("editing");
+		});
+		$("#prefaceRows").addEventListener("click", async event => {
+			const button = event.target.closest("[data-preface-action]");
+			if (!button) return;
+			const path = button.dataset.path;
+			if (!path) return;
+			const action = button.dataset.prefaceAction;
+			if (action === "edit") {
+				const data = await api("read-preface", { path });
+				fillPrefaceForm(data.preface);
+				openPrefaceEditor("edit");
+				field(prefaceForm, "body").focus();
+				prefaceForm.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "end" });
+				return;
+			}
+			if (action === "delete") {
+				if (!confirm("确定要删除这条序文吗？这个操作会删除 Markdown 文件。")) return;
+				await api("delete-preface", { path });
+				toast("序文已删除");
+				await load();
+				return;
+			}
+			if (action === "draft" || action === "publish") {
+				await api("set-preface-draft", { path, draft: action === "draft" });
+				toast(action === "draft" ? "已设为草稿" : "已发布");
+				await load();
+			}
+		});
+
+		$("#memoForm").addEventListener("submit", async event => {
+			event.preventDefault();
+			const form = event.currentTarget;
+			const button = $("[data-memo-submit]");
+			const content = String(field(form, "content").value || "").trim();
+			if (!content) {
+				toast("请输入 Memos 内容");
+				return;
+			}
+			const originalText = button.textContent;
+			button.disabled = true;
+			button.textContent = "发布中...";
+			try {
+				await api("publish-memo", { content, locale: state.currentLocale });
+				toast("Memos 已发布");
+				form.reset();
+				await load();
+			} catch (error) {
+				toast(error.message || "发布失败");
+			} finally {
+				button.disabled = false;
+				button.textContent = originalText;
+			}
 		});
 
 		$("#discoverForm").addEventListener("submit", async event => {
@@ -360,26 +748,81 @@ import Base from "$layouts/Base.astro";
 			toast("已发现站点信息");
 		});
 
+		const linkWorkspace = $("#linkWorkspace");
+		const discoverForm = $("#discoverForm");
+		const linkForm = $("#linkForm");
+		$("[data-action='addLink']").addEventListener("click", () => {
+			discoverForm.reset();
+			linkForm.reset();
+			field(linkForm, "originalUrl").value = "";
+			openLinkEditor("new");
+			field(discoverForm, "url").focus();
+			linkWorkspace.scrollIntoView({ behavior: "smooth", block: "start" });
+		});
+		$("[data-action='cancelLink']").addEventListener("click", () => {
+			linkWorkspace.classList.remove("adding");
+		});
+
 		$("#linkForm").addEventListener("submit", async event => {
 			event.preventDefault();
 			await api("add-link", formData(event.currentTarget));
 			toast("友链已保存");
 			await load();
+			discoverForm.reset();
+			linkForm.reset();
+			field(linkForm, "originalUrl").value = "";
+			linkWorkspace.classList.remove("adding");
 		});
 
-		$("[data-action='checkLinks']").addEventListener("click", async () => {
-			const data = await api("check-links", {});
-			state.links = state.links.map(link => {
-				const result = data.results.find(item => item.url === link.url);
-				return result ? { ...link, status: result.status } : link;
-			});
-			$("#feedsList").innerHTML = data.results.map(item => `<article class="list-item"><strong>${escapeHTML(item.title)}</strong><span>${item.ok ? "正常" : "异常"} · ${escapeHTML(item.status)}</span><a href="${escapeHTML(item.url)}" target="_blank">${escapeHTML(item.url)}</a></article>`).join("");
-			toast("检测完成");
+		$("#linksList").addEventListener("click", async event => {
+			const button = event.target.closest("[data-link-action]");
+			if (!button) return;
+			const url = button.dataset.url;
+			if (!url) return;
+			const action = button.dataset.linkAction;
+			if (action === "edit") {
+				const data = await api("read-link", { url });
+				discoverForm.reset();
+				fillLinkForm(data.item);
+				openLinkEditor("edit");
+				field(linkForm, "title").focus();
+				linkWorkspace.scrollIntoView({ behavior: "smooth", block: "start" });
+				return;
+			}
+			if (action === "delete") {
+				if (!confirm("确定要删除这条友链吗？")) return;
+				await api("delete-link", { url });
+				toast("友链已删除");
+				await load();
+			}
 		});
 
-		$("[data-action='refreshFeeds']").addEventListener("click", async () => {
+		$("[data-action='checkLinks']")?.addEventListener("click", async event => {
+			const button = event.currentTarget;
+			const originalText = button.textContent;
+			button.disabled = true;
+			button.textContent = "检测中...";
+			toast("正在检测友链");
+			try {
+				const data = await api("check-links", {});
+				state.links = state.links.map(link => {
+					const result = data.results.find(item => item.url === link.url);
+					return result ? { ...link, status: result.status } : link;
+				});
+				renderLists();
+				toast(`检测完成：${data.results.length} 条`);
+			} catch (error) {
+				toast(error.message || "检测失败");
+			} finally {
+				button.disabled = false;
+				button.textContent = originalText;
+			}
+		});
+
+		$("[data-action='refreshFeeds']")?.addEventListener("click", async () => {
 			const data = await api("refresh-feeds", {});
 			state.feeds = data.items || [];
+			state.feedSources = data.feedSources || state.feedSources;
 			renderLists();
 			toast("订阅源已刷新");
 		});
@@ -412,6 +855,8 @@ import Base from "$layouts/Base.astro";
 	.row-actions,
 	.discover,
 	.admin-actions,
+	.panel-actions,
+	.editor-head,
 	.filters {
 		display: flex;
 		align-items: center;
@@ -422,6 +867,26 @@ import Base from "$layouts/Base.astro";
 	.panel-head {
 		justify-content: space-between;
 		align-items: flex-start;
+		margin-bottom: 1rem;
+	}
+
+	.panel-actions {
+		justify-content: flex-start;
+		flex-wrap: wrap;
+	}
+
+	.panel-title {
+		display: grid;
+		gap: 0.75rem;
+	}
+
+	.editor-head {
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.editor-head h3 {
+		margin-bottom: 0;
 	}
 
 	.eyebrow {
@@ -457,6 +922,11 @@ import Base from "$layouts/Base.astro";
 		color: var(--color-secondary);
 	}
 
+	.button:disabled {
+		cursor: progress;
+		opacity: 0.65;
+	}
+
 	input,
 	select,
 	textarea {
@@ -471,7 +941,7 @@ import Base from "$layouts/Base.astro";
 
 	.stats {
 		display: grid;
-		grid-template-columns: repeat(5, minmax(0, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
 		gap: 0.75rem;
 	}
 
@@ -543,6 +1013,47 @@ import Base from "$layouts/Base.astro";
 		display: block;
 	}
 
+	.content-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1rem;
+		align-items: start;
+	}
+
+	#articleWorkspace.editing .article-list-page {
+		display: none;
+	}
+
+	#prefaceWorkspace.editing {
+		grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr);
+	}
+
+	.link-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1rem;
+		align-items: start;
+	}
+
+	.link-layout.adding .link-list-page {
+		display: none;
+	}
+
+	.link-add-page {
+		display: none;
+		gap: 0.85rem;
+	}
+
+	.link-layout.adding .link-add-page {
+		display: grid;
+	}
+
+	.link-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.85rem;
+	}
+
 	.split {
 		display: grid;
 		grid-template-columns: minmax(0, 1.1fr) minmax(22rem, 0.9fr);
@@ -557,16 +1068,59 @@ import Base from "$layouts/Base.astro";
 
 	table {
 		width: 100%;
-		border-collapse: collapse;
+		border-collapse: separate;
+		border-spacing: 0 0.45rem;
 		font-size: 0.92rem;
 	}
 
 	th,
 	td {
-		padding: 0.65rem;
-		border-bottom: 1px solid var(--color-weak);
+		padding: 0.9rem 0.65rem;
 		text-align: start;
 		vertical-align: top;
+	}
+
+	.table-wrap tbody td {
+		border-bottom: 1px dashed color-mix(in srgb, var(--color-secondary), transparent 65%) !important;
+	}
+
+	.table-wrap tbody tr:last-child td {
+		border-bottom: 0 !important;
+	}
+
+	.article-title-link {
+		color: var(--color-primary);
+		font-weight: 800;
+		text-decoration: underline;
+		text-decoration-style: dotted;
+		text-underline-offset: 0.2em;
+	}
+
+	.draft-badge {
+		display: inline-block;
+		margin-inline-start: 0.45rem;
+		padding: 0.05rem 0.35rem;
+		border-radius: 4px;
+		color: var(--color-secondary);
+		background: var(--color-weak);
+		font-size: 0.72rem;
+	}
+
+	.item-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		min-width: 12rem;
+	}
+
+	.button.mini {
+		padding: 0.25rem 0.45rem;
+		border-width: 1px;
+		font-size: 0.78rem;
+	}
+
+	.button.danger {
+		color: #b42318;
 	}
 
 	td small {
@@ -589,6 +1143,16 @@ import Base from "$layouts/Base.astro";
 		display: grid;
 		gap: 0.65rem;
 		padding: 0.9rem;
+	}
+
+	.article-editor,
+	.preface-editor {
+		display: none;
+	}
+
+	#articleWorkspace.editing .article-editor,
+	.content-layout.editing .preface-editor {
+		display: grid;
 	}
 
 	label {
@@ -620,25 +1184,23 @@ import Base from "$layouts/Base.astro";
 		overflow: auto;
 	}
 
+	.feed-list {
+		display: grid;
+		gap: 0.6rem;
+		max-height: 68vh;
+		overflow: auto;
+	}
+
+	.memo-editor {
+		margin-bottom: 1rem;
+	}
+
 	.list-item {
 		padding: 0.7rem;
 	}
 
 	.list-item p {
 		margin-bottom: 0.35rem;
-	}
-
-	.link-item {
-		display: grid;
-		grid-template-columns: 2.2rem minmax(0, 1fr);
-		gap: 0.65rem;
-	}
-
-	.link-item img {
-		width: 2.2rem;
-		height: 2.2rem;
-		object-fit: cover;
-		border-radius: 6px;
 	}
 
 	.log {
@@ -663,7 +1225,12 @@ import Base from "$layouts/Base.astro";
 	@media (max-width: 900px) {
 		.stats,
 		.workspace,
+		.content-layout.editing,
 		.split {
+			grid-template-columns: 1fr;
+		}
+
+		.link-grid {
 			grid-template-columns: 1fr;
 		}
 
@@ -679,4 +1246,155 @@ import Base from "$layouts/Base.astro";
 			flex-direction: column;
 		}
 	}
+</style>
+
+<style is:global>
+	.admin-shell .table-wrap table {
+		border-collapse: separate;
+		border-spacing: 0 0.45rem;
+	}
+
+	.admin-shell .table-wrap tbody td {
+		padding: 0.9rem 0.65rem;
+		border-bottom: 1px dashed color-mix(in srgb, var(--color-secondary), transparent 65%) !important;
+		vertical-align: top;
+	}
+
+	.admin-shell .table-wrap tbody tr:last-child td {
+		border-bottom: 0 !important;
+	}
+
+	.admin-shell .article-title-link {
+		color: var(--color-primary);
+		font-weight: 800;
+		text-decoration: underline;
+		text-decoration-style: dotted;
+		text-underline-offset: 0.2em;
+	}
+
+	.admin-shell .draft-badge {
+		display: inline-block;
+		margin-inline-start: 0.45rem;
+		padding: 0.05rem 0.35rem;
+		border-radius: 4px;
+		color: var(--color-secondary);
+		background: var(--color-weak);
+		font-size: 0.72rem;
+	}
+
+	.admin-shell .item-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		min-width: 12rem;
+	}
+
+	.admin-shell .button.mini {
+		padding: 0.25rem 0.45rem;
+		border-width: 1px;
+		font-size: 0.78rem;
+	}
+
+	.admin-shell .button.danger {
+		color: #b42318;
+	}
+
+	.admin-shell .link-card {
+		display: grid;
+		grid-template-columns: 3rem minmax(0, 1fr) auto;
+		gap: 0.75rem;
+		align-items: start;
+		min-height: 5rem;
+		padding: 0.85rem;
+		border: 1px solid var(--color-weak);
+		border-radius: 8px;
+		background: var(--color-background);
+	}
+
+	.admin-shell .link-card.empty {
+		grid-column: 1 / -1;
+		color: var(--color-secondary);
+	}
+
+	.admin-shell .link-card img {
+		width: 3rem;
+		height: 3rem;
+		object-fit: cover;
+		border-radius: 8px;
+		background: var(--color-weak);
+	}
+
+	.admin-shell .link-card-title {
+		display: block;
+		overflow-wrap: anywhere;
+		color: var(--color-primary);
+		font-size: 1rem;
+		font-weight: 800;
+		text-decoration: underline;
+		text-decoration-style: dotted;
+		text-underline-offset: 0.2em;
+	}
+
+	.admin-shell .link-card p {
+		margin: 0.25rem 0 0;
+		color: var(--color-secondary);
+		font-size: 0.85rem;
+		line-height: 1.45;
+		overflow-wrap: anywhere;
+	}
+
+	.admin-shell .link-actions {
+		justify-content: flex-end;
+		min-width: 4.8rem;
+	}
+
+	.admin-shell .link-status {
+		display: inline-flex;
+		margin-top: 0.3rem;
+		padding: 0.1rem 0.45rem;
+		border-radius: 999px;
+		color: #b42318;
+		background: color-mix(in srgb, #b42318, transparent 88%);
+		font-size: 0.78rem;
+	}
+
+	.admin-shell .link-status.ok {
+		color: #067647;
+		background: color-mix(in srgb, #067647, transparent 88%);
+	}
+
+	.admin-shell .link-status.pending {
+		color: var(--color-secondary);
+		background: var(--color-weak);
+	}
+
+	.admin-shell .feed-item {
+		padding: 0.85rem;
+		border-bottom: 1px dashed color-mix(in srgb, var(--color-secondary), transparent 70%);
+	}
+
+	.admin-shell .feed-item a {
+		display: block;
+		color: var(--color-primary);
+		font-weight: 800;
+		text-decoration: underline;
+		text-decoration-style: dotted;
+		text-underline-offset: 0.2em;
+		overflow-wrap: anywhere;
+	}
+
+	.admin-shell .feed-item span {
+		display: block;
+		margin-top: 0.25rem;
+		color: var(--color-secondary);
+		font-size: 0.82rem;
+	}
+
+	.admin-shell .feed-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.55rem;
+		align-items: center;
+	}
+
 </style>

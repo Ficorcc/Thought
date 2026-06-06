@@ -17,6 +17,8 @@ const t = i18nit(locale);
 
 const prefaces = (
 	await getCollection("preface", preface => {
+		if (preface.data.draft) return false;
+
 		// Handle single locale setup
 		if (monolocale) return true;
 

@@ -67,7 +67,8 @@ const preface = defineCollection({
 	// Load all markdown files
 	loader: glob({ pattern: "**/*.md", base: "./src/content/preface" }),
 	schema: z.object({
-		timestamp: z.date() // Creation timestamp
+		timestamp: z.date(), // Creation timestamp
+		draft: z.boolean().default(false) // Draft status
 	})
 });
 
