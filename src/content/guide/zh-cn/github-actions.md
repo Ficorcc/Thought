@@ -1,12 +1,15 @@
 ---
-title: GitHub Actions 配置指南
+title: "GitHub Actions 配置指南"
 timestamp: 2025-07-21 00:00:00+00:00
+series: "配置"
 tags:
-  - Guide
-  - GitHub
-description: 配置 GitHub Actions 实现自动部署到 Cloudflare Workers，包括必要的环境变量和密钥设置。
-series: 技术
+  - "Guide"
+  - "GitHub"
+description: "配置 GitHub Actions 实现自动部署到 Cloudflare Workers，包括必要的环境变量和密钥设置。"
+sensitive: false
+draft: false
 ---
+
 > [!TIP]
 > 主题默认启用 GitHub Actions 自动部署到 Cloudflare Workers。\
 > 如需禁用，请直接删除 `.github/workflows/deploy.yaml` 文件。

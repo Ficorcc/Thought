@@ -1,10 +1,13 @@
 ---
-title: 站点配置指南
+title: "站点配置指南"
 timestamp: 2026-03-21 00:00:00+00:00
-series: Guide
-tags: [Configuration, Astro]
-description: 主题基础配置说明，涵盖站点信息、显示效果、图标生成等核心配置项。
-toc: true
+series: "配置"
+tags:
+  - "Configuration"
+  - "Astro"
+description: "主题基础配置说明，涵盖站点信息、显示效果、图标生成等核心配置项。"
+sensitive: false
+draft: false
 ---
 
 ## 配置参考

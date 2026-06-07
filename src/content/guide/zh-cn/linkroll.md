@@ -1,9 +1,13 @@
 ---
-title: 连结组件使用指南
+title: "连结组件使用指南"
 timestamp: 2025-11-17 00:00:00+00:00
-series: Guide
-tags: [Component, MDX]
-toc: true
+series: "配置"
+tags:
+  - "Component"
+  - "MDX"
+description: "主题针对 连结 板块提供了 Linkroll 组件，以更美观及灵活的方式展示友情链接或推荐站点。"
+sensitive: false
+draft: false
 ---
 
 主题针对**连结**板块提供了 `Linkroll` 组件，以更美观及灵活的方式展示友情链接或推荐站点。
