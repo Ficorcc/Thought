@@ -99,7 +99,6 @@ export default defineConfig({
 		}
 	},
 	vite: {
-		// @ts-expect-error
 		plugins: [yaml(), tailwindcss()],
 		optimizeDeps: {
 			exclude: [
