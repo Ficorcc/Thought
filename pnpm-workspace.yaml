@@ -1,5 +1,9 @@
 onlyBuiltDependencies:
-  - esbuild
   - sharp
   - swup
   - workerd
+# @tuyuritio/shiki-code-copy 声明 peer shiki ^3，但实际只用类型导入，
+# 与 shiki 4 完全兼容。作者未发布新版，故显式放行以消除 unmet peer 警告。
+peerDependencyRules:
+  allowedVersions:
+    shiki: "4"

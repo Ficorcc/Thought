@@ -45,7 +45,7 @@
 		"prepare": "pnpm run types && husky"
 	},
 	"dependencies": {
-		"@astrojs/cloudflare": "^14.0.0",
+		"@astrojs/cloudflare": "14.1.2",
 		"@astrojs/markdown-remark": "^7.2.0",
 		"@astrojs/mdx": "^7.0.0",
 		"@astrojs/sitemap": "^3.7.3",
@@ -68,7 +68,7 @@
 		"@tuyuritio/remark-spoiler": "^0.0.2",
 		"@tuyuritio/shiki-code-copy": "^1.0.0",
 		"arctic": "^3.7.0",
-		"astro": "^7.0.0",
+		"astro": "7.0.7",
 		"dotenv": "^17.3.1",
 		"drizzle-orm": "^0.45.1",
 		"feed": "^5.2.0",

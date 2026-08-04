@@ -17,7 +17,15 @@ type NoteItem = {
 	};
 };
 
-const { locale, notes, series: seriesList, tags: tagList, pathname, search, section = "note" } = Astro.props as {
+const {
+	locale,
+	notes,
+	series: seriesList,
+	tags: tagList,
+	pathname,
+	search,
+	section = "note"
+} = Astro.props as {
 	locale: string;
 	notes: NoteItem[];
 	series: string[];
@@ -67,7 +75,8 @@ function tagUrl(value: string, force = false) {
 		params.delete("page");
 		params.delete("tag");
 
-		const next = force || !selectedTags.includes(value) ? Array.from(new Set([...selectedTags, value])) : selectedTags.filter(tag => tag !== value);
+		const next =
+			force || !selectedTags.includes(value) ? Array.from(new Set([...selectedTags, value])) : selectedTags.filter(tag => tag !== value);
 		for (const tag of next) params.append("tag", tag);
 	});
 }
