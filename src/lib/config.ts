@@ -183,7 +183,7 @@ export default function siteConfig<const Locales extends string[]>(config: SiteC
  * @returns An array of sanitized provider objects.
  */
 export function providers(
-	clients: Array<{ name: string; logo: string; clientID: string; clientSecret: string }>
+	clients: Array<{ name: string; logo: string; enabled?: boolean; clientID?: string; clientSecret?: string }>
 ): Array<{ name: string; logo: string }> {
-	return clients.filter(client => client.clientID && client.clientSecret).map(({ name, logo }) => ({ name, logo }));
+	return clients.filter(client => client.enabled ?? (client.clientID && client.clientSecret)).map(({ name, logo }) => ({ name, logo }));
 }

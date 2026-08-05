@@ -1,7 +1,6 @@
 import { buildPushPayload, type PushSubscription, type PushMessage, type VapidKeys } from "@block65/webcrypto-web-push";
+import { env } from "cloudflare:workers";
 import config from "$config";
-
-const env = import.meta.env;
 
 // VAPID (Voluntary Application Server Identification) keys for web push authentication
 // These keys are used to identify the application server to push services

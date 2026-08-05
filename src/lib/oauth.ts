@@ -1,7 +1,13 @@
 import { site } from "astro:config/server";
 import { decodeIdToken, GitHub, Google } from "arctic";
+import { env } from "cloudflare:workers";
 
-const env = import.meta.env;
+type OAuthRuntimeEnv = typeof env & {
+	GOOGLE_CLIENT_ID?: string;
+	GOOGLE_CLIENT_SECRET?: string;
+};
+
+const runtimeEnv = env as OAuthRuntimeEnv;
 const SITE = site ?? "https://panjinye.com";
 
 // Interface defining the structure of OAuth account information
@@ -44,8 +50,8 @@ export class OAuth {
 			if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) throw new Error("Missing Environment Variables");
 			this.provider = new GitHub(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET, `${redirectBase}/GitHub`);
 		} else if (provider === "Google") {
-			if (!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET)) throw new Error("Missing Environment Variables");
-			this.provider = new Google(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, `${redirectBase}/Google`);
+			if (!(runtimeEnv.GOOGLE_CLIENT_ID && runtimeEnv.GOOGLE_CLIENT_SECRET)) throw new Error("Missing Environment Variables");
+			this.provider = new Google(runtimeEnv.GOOGLE_CLIENT_ID, runtimeEnv.GOOGLE_CLIENT_SECRET, `${redirectBase}/Google`);
 		} else {
 			throw new Error("Invalid Provider");
 		}

@@ -94,15 +94,15 @@ const config = siteConfig({
 const monolocale = Number(config.i18n.locales.length) === 1;
 
 const TEST_TURNSTILE_SITE_KEY = "1x00000000000000000000AA";
-const turnstile = env.DEV ? TEST_TURNSTILE_SITE_KEY : env.CLOUDFLARE_TURNSTILE_SECRET_KEY ? env.CLOUDFLARE_TURNSTILE_SITE_KEY : undefined;
+const turnstile = env.DEV ? TEST_TURNSTILE_SITE_KEY : env.CLOUDFLARE_TURNSTILE_SITE_KEY;
 
-const push = env.VAPID_PRIVATE_KEY ? env.VAPID_PUBLIC_KEY : undefined;
+const push = env.VAPID_PUBLIC_KEY;
 
 const email = Boolean(env.EMAIL_FROM);
 
 const oauth = providers([
-	{ name: "GitHub", logo: "simple-icons--github", clientID: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET },
-	{ name: "Google", logo: "simple-icons--google", clientID: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET }
+	{ name: "GitHub", logo: "simple-icons--github", enabled: Boolean(env.GITHUB_CLIENT_ID) },
+	{ name: "Google", logo: "simple-icons--google", enabled: Boolean(env.GOOGLE_CLIENT_ID) }
 ]);
 
 export { turnstile, oauth, monolocale, push, email };

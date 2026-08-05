@@ -1,12 +1,18 @@
 import { Mock } from "./providers/mock";
 import { Resend } from "./providers/resend";
 import { Mailgun } from "./providers/mailgun";
+import { env } from "cloudflare:workers";
 import main from "./template/index.html?raw";
 import verification from "./template/verification.html?raw";
 import fresh from "./template/fresh.html?raw";
 import reply from "./template/reply.html?raw";
 
-const env = import.meta.env;
+type EmailRuntimeEnv = typeof env & {
+	RESEND_API_KEY?: string;
+	MAILGUN_API_KEY?: string;
+};
+
+const runtimeEnv = env as EmailRuntimeEnv;
 
 const templates = { main, verification, fresh, reply };
 
@@ -51,10 +57,10 @@ export function render(template: keyof typeof templates, params?: Record<string,
 export async function send(payload: EmailPayload, unsubscribeURL?: string | URL) {
 	let mailer: EmailProvider;
 
-	if (env.RESEND_API_KEY) {
-		mailer = new Resend(env.RESEND_API_KEY, unsubscribeURL);
-	} else if (env.MAILGUN_API_KEY) {
-		mailer = new Mailgun(env.MAILGUN_API_KEY, unsubscribeURL);
+	if (runtimeEnv.RESEND_API_KEY) {
+		mailer = new Resend(runtimeEnv.RESEND_API_KEY, unsubscribeURL);
+	} else if (runtimeEnv.MAILGUN_API_KEY) {
+		mailer = new Mailgun(runtimeEnv.MAILGUN_API_KEY, unsubscribeURL);
 	} else {
 		mailer = new Mock();
 	}

@@ -1,5 +1,6 @@
 import type { AstroCookies } from "astro";
 import { site } from "astro:config/server";
+import { env } from "cloudflare:workers";
 import crypto from "node:crypto";
 import ms, { type StringValue } from "ms";
 import { EncryptJWT, jwtDecrypt, type JWTPayload } from "jose";
@@ -9,7 +10,15 @@ const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567
 
 // Master encryption key from environment variables
 // The fallback value is the base64-encoded string of "DEFAULT_PASS_KEY"
-const PASS_KEY = import.meta.env.PASS_KEY || "REVGQVVMVF9QQVNTX0tFWQo=";
+const FALLBACK_PASS_KEY = "REVGQVVMVF9QQVNTX0tFWQo=";
+
+function passKey() {
+	return env.PASS_KEY || FALLBACK_PASS_KEY;
+}
+
+function passKeyBytes() {
+	return new Uint8Array(Buffer.from(passKey(), "base64"));
+}
 
 /**
  * Generate a random string of specified length
@@ -53,7 +62,7 @@ export namespace Token {
 		const token = await new EncryptJWT(payload)
 			.setProtectedHeader({ alg: "dir", enc: "A128GCM" })
 			.setExpirationTime(expiration)
-			.encrypt(new Uint8Array(Buffer.from(PASS_KEY, "base64")));
+			.encrypt(passKeyBytes());
 
 		// Set a host-only secure HTTP-only cookie. Avoid forcing `domain` so OAuth
 		// state cookies work reliably on workers.dev, custom domains and localhost.
@@ -78,7 +87,7 @@ export namespace Token {
 			if (!cookies.has(name)) return null;
 
 			// Decrypt and verify the JWT token
-			const result = await jwtDecrypt(cookies.get(name)!.value, new Uint8Array(Buffer.from(PASS_KEY, "base64")));
+			const result = await jwtDecrypt(cookies.get(name)!.value, passKeyBytes());
 			const payload = result.payload as any;
 
 			// Check if token should be renewed
@@ -110,7 +119,9 @@ export namespace Token {
 // AES namespace for symmetric encryption utilities
 export namespace AESEncryption {
 	// Derive 256-bit encryption key from master password
-	const key = crypto.createHash("sha256").update(PASS_KEY).digest();
+	function key() {
+		return crypto.createHash("sha256").update(passKey()).digest();
+	}
 
 	/**
 	 * Encrypt data using AES-256-GCM encryption
@@ -121,7 +132,7 @@ export namespace AESEncryption {
 		try {
 			// Generate random 12-byte initialization vector
 			const iv = crypto.randomBytes(12);
-			const cipher = crypto.createCipheriv("aes-256-gcm", new Uint8Array(key), new Uint8Array(iv));
+			const cipher = crypto.createCipheriv("aes-256-gcm", new Uint8Array(key()), new Uint8Array(iv));
 
 			const encrypted = cipher.update(data);
 			const final = cipher.final();
@@ -146,7 +157,7 @@ export namespace AESEncryption {
 			const tag = buffer.subarray(12, 28); // Extract Auth Tag
 			const encrypted = buffer.subarray(28); // Extract Encrypted Data
 
-			const decipher = crypto.createDecipheriv("aes-256-gcm", new Uint8Array(key), new Uint8Array(iv));
+			const decipher = crypto.createDecipheriv("aes-256-gcm", new Uint8Array(key()), new Uint8Array(iv));
 			decipher.setAuthTag(new Uint8Array(tag));
 
 			const decrypted = decipher.update(new Uint8Array(encrypted));

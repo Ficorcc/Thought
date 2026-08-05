@@ -30,3 +30,5 @@ async function cleanDirectory(directory) {
 let removed = 0;
 for (const root of roots) removed += await cleanDirectory(root);
 if (removed) console.log(`Removed ${removed} AppleDouble sidecar files.`);
+
+await rm(join("dist", "server", ".dev.vars"), { force: true });

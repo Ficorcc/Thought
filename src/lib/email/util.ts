@@ -1,11 +1,10 @@
 import { site } from "astro:config/client";
 import { getRelativeLocaleUrl } from "astro:i18n";
+import { env } from "cloudflare:workers";
 import config from "$config";
 import { AESEncryption } from "$lib/token";
 import i18nit from "$i18n";
 import { render, send } from "./index";
-
-const env = import.meta.env;
 
 /**
  * Sends an email to the specified address with the given payload.
