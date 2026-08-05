@@ -12,6 +12,8 @@ enabled = true
 
 [vars]
 AUTHOR_ID = "tg2PTUzMsoxhFZvd"
+GITHUB_REPO = "Ficorcc/Thought"
+GITHUB_BRANCH = "cloudflare"
 
 [[d1_databases]]
 binding = "DB"

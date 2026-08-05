@@ -1,0 +1,377 @@
+---
+import "../styles/admin.css";
+---
+
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Thought Admin</title>
+	</head>
+	<body>
+		<header class="page-header">
+			<div>
+				<p class="admin-kicker">Thought Admin</p>
+				<h1>后台管理</h1>
+				<span id="site-root" class="site-root">读取中...</span>
+			</div>
+			<div class="header-actions">
+				<button id="locale-toggle" type="button">中文</button>
+				<button id="refresh-all" type="button">刷新</button>
+				<button id="theme-toggle" type="button">夜间</button>
+			</div>
+		</header>
+		<section class="site-overview" aria-label="站点内容总览">
+			<div class="overview-title">
+				<span>站点内容总览</span>
+			</div>
+			<div class="overview-grid">
+				<div><strong id="overview-articles">0</strong><span>文章</span></div>
+				<div><strong id="overview-comments">0</strong><span>评论</span></div>
+				<div><strong id="overview-prefaces">0</strong><span>序文</span></div>
+				<div><strong id="overview-links">0</strong><span>友链</span></div>
+				<div><strong id="overview-subscriptions">0</strong><span>订阅</span></div>
+				<div><strong id="overview-tags">0</strong><span>标签</span></div>
+				<div><strong id="overview-series">0</strong><span>分类</span></div>
+			</div>
+		</section>
+		<div class="shell">
+			<aside class="sidebar">
+				<nav class="nav" aria-label="主导航">
+					<button class="active" data-panel="articles">内容</button>
+					<button data-panel="comments">评论</button>
+					<button data-panel="memos">序文</button>
+					<button data-panel="dashboard">Memos</button>
+					<button data-panel="links">友链</button>
+					<button data-panel="subscriptions">订阅</button>
+					<button data-panel="deploy">部署</button>
+				</nav>
+			</aside>
+
+			<main class="main">
+				<section id="dashboard" class="panel">
+					<div class="panel-head">
+						<div>
+							<p class="eyebrow">Memos</p>
+							<h1>Memos</h1>
+							<p>连接 Memos API，读取当前 Memos 内容。</p>
+						</div>
+						<div class="toolbar">
+							<button id="refresh-memos" type="button">刷新 Memos</button>
+						</div>
+					</div>
+					<section class="memos-config hidden-config" aria-hidden="true">
+						<label>站点地址<input id="memos-site-url" value="https://memos.ficor.net" readonly /></label>
+						<label>API 地址<input id="memos-api-url" value="https://memos.ficor.net/api/v1/memos" readonly /></label>
+					</section>
+					<section class="memos-publisher">
+						<label>发布内容<textarea id="memos-content" rows="5" placeholder="写一条新的 Memos"></textarea></label>
+						<div class="toolbar compact">
+							<button id="publish-memos" type="button">发布 Memos</button>
+						</div>
+					</section>
+					<section id="memos-list" class="feed-update-list"></section>
+				</section>
+
+				<section id="articles" class="panel active">
+					<div class="panel-head">
+						<div>
+							<p class="eyebrow">Content</p>
+							<h1>文章管理</h1>
+							<p>文记、指南、随笔统一管理，支持目录、分类、标签和新建草稿。</p>
+						</div>
+						<div class="toolbar">
+							<select id="article-type-filter" aria-label="全部栏目">
+								<option value="">全部栏目</option>
+								<option value="note">文记</option>
+								<option value="guide">指南</option>
+								<option value="jotting">随笔</option>
+							</select>
+							<input id="article-search" type="search" placeholder="搜索标题、标签、目录" />
+							<button id="new-article" type="button">新建文章</button>
+						</div>
+					</div>
+					<div class="article-manager">
+						<section class="article-table">
+							<div class="article-table-head">
+								<span>标题</span>
+								<span>分类</span>
+								<span>标签</span>
+								<span>操作</span>
+							</div>
+							<div id="article-list" class="article-list"></div>
+							<nav id="article-pagination" class="pagination" aria-label="文章分页"></nav>
+						</section>
+						<aside id="article-editor-panel" class="article-editor-panel" aria-live="polite">
+							<div class="editor-title-row">
+								<div>
+									<span id="article-editor-mode">新建文章</span>
+									<h2 id="article-editor-title">写一篇新的文章</h2>
+								</div>
+								<button id="close-article-editor" type="button">关闭</button>
+							</div>
+							<div class="toolbar compact">
+								<button id="extract-summary" type="button">提取摘要</button>
+								<button id="extract-tags" type="button">提取标签</button>
+								<button id="save-draft-article" type="button">草稿</button>
+								<button id="publish-article" type="button">发布</button>
+								<button id="save-article" type="button">保存</button>
+								<button id="delete-article" class="danger" type="button">删除</button>
+							</div>
+							<div class="article-compose-grid">
+								<form id="article-form" class="form-grid">
+									<input type="hidden" name="originalPath" />
+									<div class="form-row three wide">
+										<label>类型<select name="type"><option value="note">note</option><option value="guide">guide</option><option value="jotting">jotting</option></select></label>
+										<label>语言<input name="locale" value="zh-cn" /></label>
+										<label>发布时间<input name="timestamp" /></label>
+									</div>
+									<div class="form-row two wide">
+										<label>标题<input name="title" placeholder="文章标题" /></label>
+										<label>Slug<input name="slug" placeholder="自动生成" /></label>
+									</div>
+									<label class="wide markdown-editor-field">Markdown<textarea name="content" id="article-content" rows="18"></textarea></label>
+									<div class="switch-row wide">
+										<label><input type="checkbox" name="draft" /> 草稿</label>
+										<label><input type="checkbox" name="toc" /> 目录</label>
+										<label><input type="checkbox" name="sensitive" /> 敏感</label>
+										<label>置顶<input name="top" type="number" min="0" value="0" /></label>
+									</div>
+								</form>
+								<div class="article-preview-column">
+									<div class="form-row two">
+										<label>分类/系列<input form="article-form" name="series" placeholder="可选" /></label>
+										<label>标签<input form="article-form" name="tags" placeholder="逗号分隔" /></label>
+									</div>
+									<label class="article-summary-field">摘要<textarea form="article-form" name="description" rows="2"></textarea></label>
+									<article id="article-preview" class="markdown-preview"></article>
+								</div>
+							</div>
+						</aside>
+					</div>
+				</section>
+
+				<section id="comments" class="panel">
+					<div class="panel-head">
+						<div>
+							<p class="eyebrow">Comments</p>
+							<h1>评论管理</h1>
+							<p>直接连接网站 Cloudflare D1 评论数据，在系统内管理评论。</p>
+						</div>
+						<div class="toolbar">
+							<button id="comment-login-link" type="button">连接评论数据</button>
+							<button id="comment-manager-link" type="button">刷新网站评论</button>
+							<input id="comment-search" type="search" placeholder="搜索标题、内容、昵称、邮箱" />
+							<select id="comment-section-filter" aria-label="评论分区">
+								<option value="all">全部分区</option>
+								<option value="note">文记</option>
+								<option value="guide">指南</option>
+								<option value="jotting">随笔</option>
+								<option value="preface">序文</option>
+							</select>
+							<select id="comment-state-filter" aria-label="评论状态">
+								<option value="all">全部状态</option>
+								<option value="active">正常</option>
+								<option value="deleted">已删除</option>
+							</select>
+							<button id="reset-comments" type="button">重置筛选</button>
+							<button id="refresh-comments" type="button">刷新想法</button>
+						</div>
+					</div>
+					<div class="comment-manager">
+						<section class="comment-summary">
+							<p><b>想法</b> · <span id="comment-count">0</span></p>
+							<span id="comment-loading">载入中</span>
+						</section>
+						<section id="comment-list" class="comment-list"></section>
+						<aside id="comment-editor-panel" class="side-editor-panel" aria-live="polite">
+							<div class="editor-title-row">
+								<div>
+									<span id="comment-editor-mode">评论详情</span>
+									<h2 id="comment-editor-title">选择一条评论</h2>
+								</div>
+								<button id="close-comment-editor" type="button">关闭</button>
+							</div>
+							<div id="comment-detail" class="comment-detail"></div>
+							<section class="comment-history-panel">
+								<div class="editor-title-row compact-row">
+									<div>
+										<span>History</span>
+										<h2>编辑历史</h2>
+									</div>
+									<button id="load-comment-history" type="button">查看历史</button>
+								</div>
+								<div id="comment-history-list" class="comment-history-list"></div>
+							</section>
+							<div class="toolbar compact">
+								<button id="restore-comment" type="button">恢复</button>
+								<button id="delete-comment" class="danger" type="button">删除想法</button>
+								<button id="purge-comment" class="danger" type="button">彻底删除</button>
+							</div>
+						</aside>
+					</div>
+				</section>
+
+				<section id="taxonomy" class="panel">
+					<div class="panel-head">
+						<div>
+							<p class="eyebrow">Structure</p>
+							<h1>目录、分类与标签</h1>
+							<p>按当前内容自动归纳目录、分类和标签。</p>
+						</div>
+					</div>
+					<div class="work-grid three">
+						<section class="workspace"><h2>目录</h2><div id="taxonomy-directories" class="chip-list"></div></section>
+						<section class="workspace"><h2>分类/系列</h2><div id="taxonomy-series" class="chip-list"></div></section>
+						<section class="workspace"><h2>标签</h2><div id="taxonomy-tags" class="chip-list"></div></section>
+					</div>
+				</section>
+
+				<section id="links" class="panel">
+					<div class="panel-head">
+						<div>
+							<p class="eyebrow">Network</p>
+							<h1>友链</h1>
+							<p>管理朋友网站，检测网站状态，添加或编辑友链信息。</p>
+						</div>
+						<div class="toolbar">
+							<button id="new-link" type="button">添加友链</button>
+							<button id="check-links" type="button">检测友链</button>
+						</div>
+					</div>
+					<div class="link-manager">
+						<section id="links-list" class="link-grid"></section>
+						<aside id="link-editor-panel" class="side-editor-panel" aria-live="polite">
+							<div class="editor-title-row">
+								<div>
+									<span id="link-editor-mode">添加友链</span>
+									<h2 id="link-editor-title">填写网站信息</h2>
+								</div>
+								<button id="close-link-editor" type="button">关闭</button>
+							</div>
+							<div class="toolbar compact">
+								<input id="discover-input" placeholder="输入域名或网址" />
+								<button id="discover-site" type="button">发现</button>
+							</div>
+							<form id="link-form" class="form-grid single">
+								<input type="hidden" name="index" />
+								<label>名称<input name="title" /></label>
+								<label>网址<input name="url" /></label>
+								<label>分类<input name="type" /></label>
+								<label>头像<input name="image" /></label>
+								<label>订阅<input name="feed" /></label>
+								<label>描述<textarea name="description" rows="4"></textarea></label>
+								<div class="toolbar compact">
+									<button id="save-links" type="button">保存友链</button>
+									<button id="add-subscription" type="button">加入订阅</button>
+									<button id="remove-link" class="danger" type="button">删除</button>
+								</div>
+							</form>
+						</aside>
+					</div>
+				</section>
+
+				<section id="subscriptions" class="panel">
+					<div class="panel-head">
+						<div>
+							<p class="eyebrow">Feeds</p>
+							<h1>订阅</h1>
+							<p>只显示订阅源里的文章更新。</p>
+						</div>
+						<div class="toolbar">
+							<button id="refresh-feeds" type="button">刷新订阅</button>
+						</div>
+					</div>
+					<section id="subscription-list" class="feed-update-list"></section>
+				</section>
+
+				<section id="memos" class="panel">
+					<div class="panel-head">
+						<div>
+							<p class="eyebrow">Memos</p>
+							<h1>序文</h1>
+							<p>管理首页序文内容，支持新建、编辑、删除、草稿和发布。</p>
+						</div>
+						<div class="toolbar">
+							<button id="new-preface" type="button">新建序文</button>
+						</div>
+					</div>
+					<div class="preface-manager">
+						<section id="preface-list" class="preface-list"></section>
+						<aside id="preface-editor-panel" class="side-editor-panel" aria-live="polite">
+							<div class="editor-title-row">
+								<div>
+									<span id="preface-editor-mode">新建序文</span>
+									<h2 id="preface-editor-title">写一条新的序文</h2>
+								</div>
+								<button id="close-preface-editor" type="button">关闭</button>
+							</div>
+							<form id="preface-form" class="form-grid single">
+								<input type="hidden" name="originalPath" />
+								<label>语言<input name="locale" value="zh-cn" /></label>
+								<label>时间<input name="timestamp" /></label>
+								<label><input type="checkbox" name="draft" /> 草稿</label>
+								<label>内容<textarea name="content" rows="20"></textarea></label>
+							</form>
+							<div class="toolbar compact">
+								<button id="save-preface" type="button">编辑</button>
+								<button id="delete-preface" class="danger" type="button">删除</button>
+								<button id="draft-preface" type="button">草稿</button>
+								<button id="publish-preface" type="button">发布</button>
+							</div>
+							<article id="preface-preview" class="markdown-preview"></article>
+						</aside>
+					</div>
+				</section>
+
+				<section id="deploy" class="panel">
+					<div class="panel-head">
+						<div>
+							<p class="eyebrow">Deploy</p>
+							<h1>GitHub 与 Cloudflare 部署</h1>
+							<p>建立 GitHub 仓库链接，一键构建检查、提交并推送，由 Cloudflare 自动部署。</p>
+						</div>
+						<div class="toolbar">
+							<button id="refresh-deploy" type="button">刷新状态</button>
+						</div>
+					</div>
+					<div class="work-grid">
+						<section class="workspace">
+							<h2>仓库链接</h2>
+							<form id="remote-form" class="form-grid single">
+								<label>Remote 名称<input name="remoteName" value="origin" /></label>
+								<label>GitHub 地址<input name="remoteUrl" placeholder="git@github.com:you/repo.git" /></label>
+								<button id="set-remote" type="button">建立链接</button>
+							</form>
+						</section>
+						<section class="workspace">
+							<h2>一键发布</h2>
+							<form id="publish-form" class="form-grid single" autocomplete="off">
+								<label>提交信息<input name="message" value="Update site content" /></label>
+								<label>Remote<input name="remote" value="origin" /></label>
+								<label>分支<input name="branch" placeholder="留空使用当前分支" /></label>
+								<label><input type="checkbox" name="manualDeploy" /> 推送后额外执行本地 Wrangler 部署（未绑定 GitHub 时使用）</label>
+								<button id="publish-site" type="button">构建、提交并推送</button>
+							</form>
+						</section>
+					</div>
+					<section class="workspace">
+						<h2>执行日志</h2>
+						<pre id="deploy-log" class="terminal"></pre>
+					</section>
+				</section>
+			</main>
+		</div>
+		<div id="admin-auth" class="admin-auth" aria-hidden="true">
+			<form id="admin-auth-form" class="admin-auth-dialog">
+				<h2>后台登录</h2>
+				<label>密码<input id="admin-secret-input" type="password" autocomplete="current-password" /></label>
+				<button type="submit">密码进入</button>
+				<a id="admin-github-login" class="button-link admin-github-login" href="/@/reach/GitHub?referrer=%2Fadmin" data-no-swup>GitHub 登录</a>
+			</form>
+		</div>
+		<div id="toast" class="toast" role="status" aria-live="polite"></div>
+		<script is:inline src="/admin/admin.js"></script>
+	</body>
+</html>

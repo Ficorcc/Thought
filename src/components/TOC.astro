@@ -9,7 +9,7 @@ interface Props {
 	series?: { title: string; url: string; current: boolean }[];
 }
 
-const { locale, headings, series } = Astro.props;
+const { locale, headings } = Astro.props;
 
 const t = i18nit(locale);
 
@@ -108,22 +108,6 @@ if (headings) {
 							))}
 						</ul>
 					</nav>
-				</section>
-			)
-		}
-		{
-			series && series.length > 0 && (
-				<section class="flex flex-col gap-1">
-					<h4>{t("note.series")}</h4>
-					<ul class="flex flex-col text-sm gap-0.5">
-						{series.map(item => (
-							<li class:list={["flex items-center gap-1.25 before:w-1 before:h-1 before:rounded-full", item.current ? "font-bold text-primary before:bg-primary" : "text-weak before:bg-weak"]}>
-								<a href={item.url} title={item.title} class="truncate hover:font-bold hover:text-primary transition-[color,font-weight]">
-									{item.title}
-								</a>
-							</li>
-						))}
-					</ul>
 				</section>
 			)
 		}
