@@ -361,6 +361,8 @@ export function deployStatus() {
 				? "未配置 GITHUB_TOKEN，内容保存会被拒绝"
 				: "未配置 GITHUB_REPO/GITHUB_TOKEN，内容保存会被拒绝",
 		remotes: status.repo || "未配置",
+		remoteName: status.remoteName,
+		remoteUrl: status.remoteUrl,
 		tokenConfigured: status.tokenConfigured
 	};
 }

@@ -1049,16 +1049,24 @@ async function saveCurrentPrefaceAsDraft(draft) {
 }
 
 function renderDeploy(data) {
-	$("#deploy-log").textContent = [
-		`site: ${data.siteRoot || ""}`,
-		`branch: ${data.branch || ""}`,
-		"",
-		"remotes:",
-		data.remotes || "无",
-		"",
-		"status:",
-		data.status || "工作区干净"
-	].join("\n");
+	const remoteName = data.remoteName || "origin";
+	const remoteUrl = data.remoteUrl || (data.remotes && data.remotes !== "未配置" ? `https://github.com/${data.remotes}.git` : "");
+	const remoteForm = $("#remote-form");
+	if (remoteForm) setForm(remoteForm, { remoteName, remoteUrl });
+	const publishForm = $("#publish-form");
+	if (publishForm) setForm(publishForm, { ...formData(publishForm), remote: remoteName, branch: data.branch || "" });
+	$("#deploy-log").textContent =
+		data.log ||
+		[
+			`site: ${data.siteRoot || ""}`,
+			`remote: ${remoteName}`,
+			`repo: ${data.remotes || "无"}`,
+			`url: ${remoteUrl || "无"}`,
+			`branch: ${data.branch || ""}`,
+			"",
+			"status:",
+			data.status || "工作区干净"
+		].join("\n");
 }
 
 async function refreshDeploy() {
@@ -1071,17 +1079,16 @@ async function setRemote() {
 	const data = formData($("#remote-form"));
 	state.deploy = await api("/api/admin/deploy", { method: "POST", body: JSON.stringify({ action: "remote", ...data }) });
 	renderDeploy(state.deploy);
-	toast("GitHub 仓库链接已更新");
+	toast(state.deploy.ok === false ? "GitHub 仓库链接未完成" : "GitHub 仓库链接已绑定");
 }
 
 async function publishSite() {
 	const data = formData($("#publish-form"));
-	$("#deploy-log").textContent = data.manualDeploy
-		? "正在构建、提交、推送并执行 Wrangler 部署..."
-		: "正在构建、提交并推送，Cloudflare 将通过 GitHub 自动部署...";
+	$("#deploy-log").textContent = "正在提交并推送部署触发提交，Cloudflare 将通过 GitHub 自动构建部署...";
 	const result = await api("/api/admin/deploy", { method: "POST", body: JSON.stringify({ action: "publish", ...data }) });
-	$("#deploy-log").textContent = result.log;
-	toast(result.ok === false ? "发布失败，请查看执行日志" : "发布流程完成");
+	state.deploy = result;
+	renderDeploy(result);
+	toast(result.ok === false ? "发布失败，请查看执行日志" : "发布流程已触发");
 }
 
 function bindEvents() {
@@ -1225,7 +1232,8 @@ function bindEvents() {
 }
 
 bindEvents();
-$("#publish-form [name=manualDeploy]").checked = false;
+const manualDeploy = $("#publish-form [name=manualDeploy]");
+if (manualDeploy) manualDeploy.checked = false;
 applyTheme();
 applyLocale();
 newArticle(false);

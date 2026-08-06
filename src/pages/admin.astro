@@ -330,7 +330,7 @@ import "../styles/admin.css";
 						<div>
 							<p class="eyebrow">Deploy</p>
 							<h1>GitHub 与 Cloudflare 部署</h1>
-							<p>建立 GitHub 仓库链接，一键构建检查、提交并推送，由 Cloudflare 自动部署。</p>
+							<p>绑定 GitHub 仓库，一键提交并推送部署，由 Cloudflare 自动构建发布。</p>
 						</div>
 						<div class="toolbar">
 							<button id="refresh-deploy" type="button">刷新状态</button>
@@ -351,8 +351,7 @@ import "../styles/admin.css";
 								<label>提交信息<input name="message" value="Update site content" /></label>
 								<label>Remote<input name="remote" value="origin" /></label>
 								<label>分支<input name="branch" placeholder="留空使用当前分支" /></label>
-								<label><input type="checkbox" name="manualDeploy" /> 推送后额外执行本地 Wrangler 部署（未绑定 GitHub 时使用）</label>
-								<button id="publish-site" type="button">构建、提交并推送</button>
+								<button id="publish-site" type="button">构建、提交并推送部署</button>
 							</form>
 						</section>
 					</div>
@@ -372,6 +371,6 @@ import "../styles/admin.css";
 			</form>
 		</div>
 		<div id="toast" class="toast" role="status" aria-live="polite"></div>
-		<script is:inline src="/admin/admin.js?v=comment-text-20260806"></script>
+		<script is:inline src="/admin/admin.js?v=deploy-flow-20260806"></script>
 	</body>
 </html>

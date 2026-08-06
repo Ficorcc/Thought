@@ -14,6 +14,8 @@ enabled = true
 AUTHOR_ID = "tg2PTUzMsoxhFZvd"
 GITHUB_REPO = "Ficorcc/Thought"
 GITHUB_BRANCH = "cloudflare"
+GITHUB_REMOTE_NAME = "origin"
+GITHUB_REMOTE_URL = "ssh://git@ssh.github.com:443/Ficorcc/Thought.git"
 
 [[d1_databases]]
 binding = "DB"
