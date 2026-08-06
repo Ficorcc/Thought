@@ -6,12 +6,13 @@ import { and, desc, eq, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { alias } from "drizzle-orm/sqlite-core";
 import { Comment, CommentHistory, Drifter, Email, Notification, PushSubscription } from "$db/schema";
-import config, { email, monolocale, oauth, push, turnstile } from "$config";
+import config, { monolocale } from "$config";
 import remark from "$lib/remark";
 import { AESEncryption, enhash, Token } from "$lib/token";
 import { render } from "$lib/email";
 import sendEmail from "$lib/email/util";
 import sendPush from "$lib/push";
+import { runtimeEmail, runtimeOauth, runtimePush, runtimeTurnstile } from "$lib/comment-runtime";
 import i18nit from "$i18n";
 
 type HumanChallenge = {
@@ -114,6 +115,11 @@ export const comment = {
 			const entry = await getEntry(section as any, item);
 			if (!entry) throw new ActionError({ code: "NOT_FOUND" });
 			const title = section === "preface" ? tIndex("navigation.preface") : entry.data.title;
+
+			const oauth = runtimeOauth();
+			const turnstile = runtimeTurnstile();
+			const push = runtimePush();
+			const email = runtimeEmail();
 
 			// Check if commenting is enabled
 			if (!oauth.length && !turnstile) throw new ActionError({ code: "FORBIDDEN" });
@@ -324,7 +330,7 @@ export const comment = {
 		}),
 		handler: async ({ id, content }, { cookies }) => {
 			// Check if authenticated commenting is enabled
-			if (!oauth.length) throw new ActionError({ code: "FORBIDDEN" });
+			if (!runtimeOauth().length) throw new ActionError({ code: "FORBIDDEN" });
 
 			// Verify user authentication
 			const drifter = (await Token.check(cookies, "passport"))?.visa;
@@ -368,7 +374,7 @@ export const comment = {
 		input: z.string(), // The comment ID to delete
 		handler: async (id, { cookies }) => {
 			// Check if authenticated commenting is enabled
-			if (!oauth.length) throw new ActionError({ code: "FORBIDDEN" });
+			if (!runtimeOauth().length) throw new ActionError({ code: "FORBIDDEN" });
 
 			// Verify user authentication
 			const drifter = (await Token.check(cookies, "passport"))?.visa;
@@ -390,17 +396,24 @@ export const comment = {
 	purge: defineAction({
 		input: z.string(),
 		handler: async (id, { cookies }) => {
-			if (!oauth.length) throw new ActionError({ code: "FORBIDDEN" });
+			if (!runtimeOauth().length) throw new ActionError({ code: "FORBIDDEN" });
 
 			const drifter = (await Token.check(cookies, "passport"))?.visa;
 			const authorId = env.AUTHOR_ID ?? null;
 			if (!drifter || !authorId || drifter !== authorId) throw new ActionError({ code: "UNAUTHORIZED" });
 
 			const db = drizzle(env.DB);
-			const target = await db.select({ id: Comment.id, reply: Comment.reply, deleted: Comment.deleted }).from(Comment).where(eq(Comment.id, id)).get();
+			const target = await db
+				.select({ id: Comment.id, reply: Comment.reply, deleted: Comment.deleted })
+				.from(Comment)
+				.where(eq(Comment.id, id))
+				.get();
 			if (!target?.deleted) throw new ActionError({ code: "BAD_REQUEST" });
 
-			await db.update(Comment).set({ reply: target.reply ?? null }).where(eq(Comment.reply, id));
+			await db
+				.update(Comment)
+				.set({ reply: target.reply ?? null })
+				.where(eq(Comment.reply, id));
 			await db.delete(Notification).where(eq(Notification.comment, id));
 			await db.delete(Comment).where(eq(Comment.id, id));
 		}
@@ -586,16 +599,7 @@ export const comment = {
 			const filtered = !query
 				? records
 				: records.filter(comment =>
-						[
-							comment.title,
-							comment.item,
-							comment.content,
-							comment.name,
-							comment.nickname,
-							comment.email,
-							comment.section,
-							comment.reply
-						]
+						[comment.title, comment.item, comment.content, comment.name, comment.nickname, comment.email, comment.section, comment.reply]
 							.filter((value): value is string => Boolean(value))
 							.some(value => value.toLocaleLowerCase().includes(query))
 					);

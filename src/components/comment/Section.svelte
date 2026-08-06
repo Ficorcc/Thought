@@ -50,6 +50,31 @@ let comments: CommentItem[] = $state([]);
 let ascending: boolean = $state(false);
 let list: CommentItem[] = $derived(ascending ? comments : [...comments].reverse());
 
+type RuntimeCommentConfig = {
+	oauth?: Array<{ name: string; logo: string }>;
+	turnstile?: string;
+	push?: string;
+	email?: boolean;
+};
+
+async function loadRuntimeConfig() {
+	try {
+		const response = await fetch("/api/comment/config.json", {
+			cache: "no-store",
+			headers: { accept: "application/json" }
+		});
+		if (!response.ok) return;
+
+		const config = (await response.json()) as RuntimeCommentConfig;
+		if (Array.isArray(config.oauth)) context.oauth = config.oauth;
+		context.turnstile = config.turnstile || undefined;
+		context.push = config.push || undefined;
+		context.email = Boolean(config.email);
+	} catch {
+		// Keep static props as a fallback when the runtime config endpoint is unavailable.
+	}
+}
+
 /**
  * Refresh comment list
  * @param auto - Whether this is an automatic refresh (default true)
@@ -73,6 +98,8 @@ async function refresh(auto: boolean = true) {
 }
 
 onMount(async () => {
+	await loadRuntimeConfig();
+
 	let loadDrifter = false;
 	let loadComments = false;
 
@@ -97,28 +124,28 @@ onMount(async () => {
 		pushTip("error", t("comment.fetch.failure"));
 	}
 
-		loaded = loadComments && loadDrifter;
+	loaded = loadComments && loadDrifter;
 
-		try {
-			// Initial load of push subscription status
-			// Register service worker for push notifications
-			const registration = await navigator.serviceWorker.register("/sw.js");
-			const subscription = await registration.pushManager.getSubscription();
+	try {
+		// Initial load of push subscription status
+		// Register service worker for push notifications
+		const registration = await navigator.serviceWorker.register("/sw.js");
+		const subscription = await registration.pushManager.getSubscription();
 
-			if (subscription) {
-				// Verify subscription is still valid on server
-				const { data } = await actions.push.check(subscription.endpoint);
-				if (data) {
-					context.subscription = data;
-				} else {
-					// Clean up invalid subscription
-					await subscription.unsubscribe();
-				}
+		if (subscription) {
+			// Verify subscription is still valid on server
+			const { data } = await actions.push.check(subscription.endpoint);
+			if (data) {
+				context.subscription = data;
+			} else {
+				// Clean up invalid subscription
+				await subscription.unsubscribe();
 			}
-		} catch {
-			context.subscription = undefined;
 		}
-	});
+	} catch {
+		context.subscription = undefined;
+	}
+});
 </script>
 
 <main>
