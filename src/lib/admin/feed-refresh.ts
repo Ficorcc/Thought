@@ -82,6 +82,14 @@ function shorten(value: string, length = 240) {
 	return text.length > length ? `${text.slice(0, length).trim()}...` : text;
 }
 
+function dateRank(value: string) {
+	const normalized = normalizeDate(value);
+	const match = normalized.match(/^(\d{4}-\d{2}-\d{2})(?: (\d{2}:\d{2}))?/);
+	if (match) return Date.parse(`${match[1]}T${match[2] || "00:00"}:00Z`);
+	const parsed = Date.parse(normalized);
+	return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 function item(source: string, siteTitle: string, title: string, url: string, date: string, summary: string): FeedCacheItem | null {
 	const cleanUrl = decodeHtml(url);
 	const cleanTitle = decodeHtml(title);
@@ -221,7 +229,7 @@ function dedupe(items: FeedCacheItem[]) {
 			seen.add(key);
 			return true;
 		})
-		.sort((a, b) => normalizeDate(b.date).localeCompare(normalizeDate(a.date)))
+		.sort((a, b) => dateRank(b.date) - dateRank(a.date) || b.date.localeCompare(a.date))
 		.slice(0, 80);
 }
 
