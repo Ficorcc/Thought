@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { requireAdmin } from "$lib/admin/auth";
 import { readJsonContent, writeJsonContent } from "$lib/admin/content";
+import { refreshFeedCache } from "$lib/admin/feed-refresh";
 
 export const prerender = false;
 
@@ -28,7 +29,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 export const PATCH: APIRoute = async ({ request, cookies }) => {
 	const denied = await requireAdmin(request, cookies);
 	if (denied) return denied;
-	const subscriptions = await readJsonContent("zh-cn/subscriptions.json", []);
-	const items = await readJsonContent("zh-cn/feed-cache.json", []);
-	return Response.json({ subscriptions, items });
+	let locale = "zh-cn";
+	try {
+		const body = (await request.json()) as { locale?: string };
+		if (body.locale) locale = body.locale;
+	} catch {}
+	const subscriptions = await readJsonContent<unknown[]>(`${locale}/subscriptions.json`, []);
+	const fallback = await readJsonContent<unknown[]>(`${locale}/feed-cache.json`, []);
+	const refreshed = await refreshFeedCache(subscriptions as any[], fallback as any[]);
+	if (refreshed.items.length) await writeJsonContent(`${locale}/feed-cache.json`, refreshed.items);
+	return Response.json({
+		subscriptions,
+		items: refreshed.items,
+		refreshedAt: refreshed.updatedAt,
+		sources: refreshed.sources,
+		errors: refreshed.errors
+	});
 };

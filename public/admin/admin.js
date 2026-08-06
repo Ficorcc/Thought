@@ -949,11 +949,25 @@ async function removeSubscription(index) {
 }
 
 async function refreshFeeds() {
-	const data = await api("/api/admin/subscriptions", { method: "PATCH", body: JSON.stringify({ locale: "zh-cn" }) });
-	state.subscriptions = data.subscriptions;
-	state.feedItems = data.items;
-	renderSubscriptions();
-	toast(`订阅刷新完成，缓存 ${data.items.length} 条`);
+	const button = $("#refresh-feeds");
+	if (button) {
+		button.disabled = true;
+		button.textContent = "刷新中...";
+	}
+	try {
+		const data = await api("/api/admin/subscriptions", { method: "PATCH", body: JSON.stringify({ locale: "zh-cn" }) });
+		state.subscriptions = data.subscriptions;
+		state.feedItems = data.items;
+		renderSubscriptions();
+		renderOverview();
+		const failed = Array.isArray(data.errors) && data.errors.length ? `，${data.errors.length} 个源失败` : "";
+		toast(`订阅已直接刷新，缓存 ${data.items.length} 条${failed}`);
+	} finally {
+		if (button) {
+			button.disabled = false;
+			button.textContent = "刷新订阅";
+		}
+	}
 }
 
 function renderPrefaces() {
