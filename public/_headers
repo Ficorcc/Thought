@@ -1,5 +1,16 @@
 # See https://developers.cloudflare.com/pages/configuration/headers/
 
+
+# HTML routes include runtime-facing comment configuration. Keep them revalidating.
+/note/*
+  Cache-Control: no-cache, must-revalidate
+/guide/*
+  Cache-Control: no-cache, must-revalidate
+/jotting/*
+  Cache-Control: no-cache, must-revalidate
+/preface*
+  Cache-Control: no-cache, must-revalidate
+
 # Cache rules for Astro assets
 /_astro/*
   Cache-Control: public, max-age=31556952, immutable
