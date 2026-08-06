@@ -618,7 +618,7 @@ function renderComments() {
 							${deleted ? `<span class="comment-badge danger">已删除</span>` : ""}
 							<a href="${escapeHtml(comment.url || "#")}" target="_blank" rel="noreferrer">${escapeHtml(comment.title || comment.item || "未命名内容")}</a>
 						</div>
-						<p>${escapeHtml(comment.content || "想法被删除")}</p>
+						<p>${escapeHtml(comment.content || "评论被删除")}</p>
 						<small>
 							${escapeHtml(name)}
 							${comment.email ? ` · ${escapeHtml(comment.email)}` : ""}
@@ -720,7 +720,7 @@ function renderSelectedComment() {
 			</div>
 			<h3><a href="${escapeHtml(comment.url || "#")}" target="_blank" rel="noreferrer">${escapeHtml(comment.title || "未命名内容")}</a></h3>
 			<p class="comment-author">${escapeHtml(displayCommentName(comment))}${comment.email ? ` · ${escapeHtml(comment.email)}` : ""}</p>
-			<blockquote>${escapeHtml(comment.content || "想法被删除")}</blockquote>
+			<blockquote>${escapeHtml(comment.content || "评论被删除")}</blockquote>
 			<dl>
 				<div><dt>评论 ID</dt><dd>${escapeHtml(comment.id)}</dd></div>
 				<div><dt>内容 ID</dt><dd>${escapeHtml(comment.item || "")}</dd></div>

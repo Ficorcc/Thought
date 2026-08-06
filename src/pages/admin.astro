@@ -176,12 +176,12 @@ import "../styles/admin.css";
 								<option value="deleted">已删除</option>
 							</select>
 							<button id="reset-comments" type="button">重置筛选</button>
-							<button id="refresh-comments" type="button">刷新想法</button>
+							<button id="refresh-comments" type="button">刷新评论</button>
 						</div>
 					</div>
 					<div class="comment-manager">
 						<section class="comment-summary">
-							<p><b>想法</b> · <span id="comment-count">0</span></p>
+							<p><b>评论</b> · <span id="comment-count">0</span></p>
 							<span id="comment-loading">载入中</span>
 						</section>
 						<section id="comment-list" class="comment-list"></section>
@@ -206,7 +206,7 @@ import "../styles/admin.css";
 							</section>
 							<div class="toolbar compact">
 								<button id="restore-comment" type="button">恢复</button>
-								<button id="delete-comment" class="danger" type="button">删除想法</button>
+								<button id="delete-comment" class="danger" type="button">删除评论</button>
 								<button id="purge-comment" class="danger" type="button">彻底删除</button>
 							</div>
 						</aside>
@@ -372,6 +372,6 @@ import "../styles/admin.css";
 			</form>
 		</div>
 		<div id="toast" class="toast" role="status" aria-live="polite"></div>
-		<script is:inline src="/admin/admin.js"></script>
+		<script is:inline src="/admin/admin.js?v=comment-text-20260806"></script>
 	</body>
 </html>

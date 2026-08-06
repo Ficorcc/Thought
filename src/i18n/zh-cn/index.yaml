@@ -4,48 +4,48 @@ about:
 cancel: 取消
 comment:
   author: 笔者
-  collapse: 合上笔谈
-  disabled: 想法归档，暂不新增
+  collapse: 收起评论
+  disabled: 评论区暂时关闭，暂不新增
   edit:
     history: 编辑历史
     name: 编辑
-  empty: 想法内容为空
-  expand: 展开思绪
-  failure: 抱歉，想法未能送达
+  empty: 评论内容为空
+  expand: 展开评论
+  failure: 抱歉，评论未能送达
   fetch:
-    failure: 获取想法出错
+    failure: 获取评论出错
   history: 历史
   limit: 发表过于频繁
-  name: 想法
+  name: 评论
   nickname:
     empty: 昵称不能为空
     name: 昵称
   overlength: |
-    想法过长
+    评论过长
     可于回复中续写
-  placeholder: 于此留下想法
+  placeholder: 于此留下评论
   preview:
     empty: 等待您的 Markdown 灵感
     name: Markdown 预览
   reload:
-    increase: 获取到新的想法！
-    name: 刷新想法
-    same: 暂无新的想法
+    increase: 获取到新的评论！
+    name: 刷新评论
+    same: 暂无新的评论
   remove:
-    failure: 删除想法失败
-    name: 删除想法
-    success: 想法删除成功
-  removed: 想法被删除
+    failure: 删除评论失败
+    name: 删除评论
+    success: 评论删除成功
+  removed: 评论被删除
   reply: 回复
   share:
     name: 分享
     success: 链接已复制
-  signin: 登录以传递想法
+  signin: 登录后发表评论
   sort:
     asc: 时间升序
     desc: 时间降序
   submit: 发表
-  success: 想法已送达
+  success: 评论已送达
   time: 发送时间
   manage:
     delete:
@@ -98,8 +98,8 @@ drifter:
     cancel: 继续驻足
     confirm: 确认注销
     consequences:
-      comment: 无法再使用当前账号发布想法
-      comments: 所有想法都将保留但匿名化处理
+      comment: 无法再使用当前账号发表评论
+      comments: 所有评论都将保留但匿名化处理
       data: 所有个人信息将被清除
       new: 重新授权登录将创建全新账号
       notification: 无法再接收邮件通知
@@ -177,7 +177,7 @@ navigation:
   policy: 政策
   preface: 序文
 note:
-  comment: 前往想法
+  comment: 前往评论
   empty: 暂无文记
   next: 下一篇
   previous: 上一篇
@@ -187,9 +187,9 @@ note:
 oauth:
   benefit:
     captcha: 无需进行人机验证
-    comment: 编辑和删除自己的想法
+    comment: 编辑和删除自己的评论
     homepage: 展示自己的个人主页
-    notification: 接收想法回复的邮件通知
+    notification: 接收评论回复的邮件通知
   signin: 使用 {provider} 登录
 push:
   denied: 您已拒绝桌面通知权限

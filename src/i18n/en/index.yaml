@@ -4,48 +4,48 @@ about:
 cancel: Cancel
 comment:
   author: Author
-  collapse: Fold away thoughts
-  disabled: Ideas archived. Closed for now.
+  collapse: Collapse comments
+  disabled: Comments are closed for now.
   edit:
     history: Edit History
     name: Edit
-  empty: Thought is empty
-  expand: Unfurl thoughts
-  failure: Sorry, your thoughts couldn't be sent
+  empty: Comment is empty
+  expand: Expand comments
+  failure: Sorry, your comment could not be sent
   fetch:
-    failure: Error loading thoughts
+    failure: Error loading comments
   history: History
   limit: Post too frequently
-  name: Thoughts
+  name: Comments
   nickname:
     empty: Nickname can't be empty
     name: Nickname
   overlength: |
     Too long
     Continue in a reply
-  placeholder: Leave your thoughts here
+  placeholder: Leave a comment here
   preview:
     empty: Waiting for your Markdown inspiration
     name: Markdown Preview
   reload:
-    increase: Get new thoughts!
+    increase: New comments loaded!
     name: Refresh comments
-    same: No new thoughts yet
+    same: No new comments yet
   remove:
-    failure: Thought deletion failed
-    name: Delete Thought
-    success: Thought deleted
-  removed: Deleted thought
+    failure: Comment deletion failed
+    name: Delete Comment
+    success: Comment deleted
+  removed: Deleted comment
   reply: Reply
   share:
     name: Share
     success: Link copied
-  signin: Sign in to share your thoughts
+  signin: Sign in to comment
   sort:
     asc: Time ascending
     desc: Time descending
   submit: Submit
-  success: Your thoughts have been delivered
+  success: Your comment has been posted
   time: Posted at
   manage:
     delete:
@@ -182,7 +182,7 @@ navigation:
   policy: Policy
   preface: Preface
 note:
-  comment: Thoughts
+  comment: Comments
   empty: No notes available
   next: Next
   previous: Previous
@@ -192,9 +192,9 @@ note:
 oauth:
   benefit:
     captcha: No need to resolve CAPTCHA
-    comment: Edit and delete your own thoughts
+    comment: Edit and delete your own comments
     homepage: Display your personal homepage
-    notification: Receive email notifications for thought replies
+    notification: Receive email notifications for comment replies
   signin: Sign in with {provider}
 push:
   denied: You have denied desktop notification permission
