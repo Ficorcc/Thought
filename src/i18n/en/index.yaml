@@ -150,6 +150,17 @@ email:
         Verification email sent. The link will expire in 5 minutes, please check
         it as soon as possible.
     success: Email verification successful!
+feed:
+  page:
+    articles: Articles
+    description: Add this address to any supported reader to subscribe and get the latest updates in time.
+    footer: This is a feed page. Visit {link} for the full website experience.
+    name: Feed
+    next: Next
+    previous: Previous
+    note: This page is a content feed.
+    updated: 'Last updated: {time}'
+    url: 'Feed address:'
 home:
   heatmap:
     empty: No words

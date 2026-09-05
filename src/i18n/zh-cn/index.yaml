@@ -148,6 +148,17 @@ email:
       failure: 无法发送验证邮件
       success: 验证邮件已发送，链接将在 5 分钟后过期，请尽快查收
     success: 邮箱验证成功！
+feed:
+  page:
+    articles: 文章
+    description: 您可以在任何支持的阅读器中添加当前地址来订阅此内容，以便及时获取最新更新。
+    footer: 这是订阅源页面。访问 {link} 以获得完整的网站体验。
+    name: 订阅源
+    next: 下一页
+    note: 本页面是内容订阅源。
+    previous: 上一页
+    updated: 最后更新：{time}
+    url: '订阅地址:'
 home:
   heatmap:
     empty: 无字

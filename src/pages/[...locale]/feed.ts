@@ -5,17 +5,17 @@ import { getRelativeLocaleUrl } from "astro:i18n";
 import { Feed } from "feed";
 import config, { monolocale } from "$config";
 import i18nit from "$i18n";
+import renderFeedPage from "$lib/feed-page";
 
-export async function getStaticPaths() {
-	// Create path for each locale, omitting default locale from URL
-	return config.i18n.locales.map(locale => ({ params: { locale: config.i18n.defaultLocale === locale ? undefined : locale } }));
-}
+export const prerender = false;
 
 /**
  * GET endpoint for generating feeds
  * Supports filtering by language, series, and tags
+ * Serves an HTML subscription page to browsers (Accept: text/html),
+ * raw Atom XML to feed readers
  */
-export const GET: APIRoute = async ({ site, params }) => {
+export const GET: APIRoute = async ({ site, params, request }) => {
 	const { locale: language = config.i18n.defaultLocale } = params;
 	const t = i18nit(language);
 
@@ -102,6 +102,25 @@ export const GET: APIRoute = async ({ site, params }) => {
 	items = items
 		.sort((a, b) => b.data.timestamp.getTime() - a.data.timestamp.getTime()) // Sort by newest first
 		.slice(0, config.feed?.limit || items.length); // Limit to number of items
+
+	// Serve a human-readable subscription page to browsers, raw XML to feed readers
+	const wantsHtml = (request.headers.get("accept") ?? "").split(",").some(mimeType => mimeType.trim().split(";")[0] === "text/html");
+
+	if (wantsHtml) {
+		return new Response(
+			renderFeedPage({
+				site: site!,
+				language,
+				items: items.map(item => ({
+					title: item.data.title,
+					link: (<any>item).link,
+					timestamp: item.data.timestamp,
+					tags: item.data.tags
+				}))
+			}),
+			{ headers: { "Content-Type": "text/html;charset=utf-8" } }
+		);
+	}
 
 	// Create an Astro container for rendering content
 	const container = await AstroContainer.create();
