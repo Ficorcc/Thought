@@ -234,7 +234,7 @@ comment: false # 关闭页面评论（默认开启）
 
 ## 🌈 项目结构
 
-```t
+```text
 .
 ├── public              => 静态资源
 ├── script              => 命令

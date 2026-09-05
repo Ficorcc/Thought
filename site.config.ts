@@ -1,6 +1,6 @@
 import siteConfig, { providers } from "./src/lib/config";
 
-const env = { ...process.env, ...(import.meta.env ?? {}) };
+const env = { ...(typeof process === "undefined" ? {} : (process.env ?? {})), ...(import.meta.env ?? {}) };
 
 const config = siteConfig({
 	title: "Ficor's Blog",
