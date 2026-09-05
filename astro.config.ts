@@ -122,6 +122,10 @@ export default defineConfig({
 					"astro/actions/runtime/entrypoints/client.js",
 					"astro/actions/runtime/entrypoints/route.js",
 					"astro/actions/runtime/entrypoints/server.js",
+					// Lazily discovered on demand - prebundling them mid-session
+					// rewrites deps_ssr and breaks the running workerd process
+					"astro/container",
+					"@block65/webcrypto-web-push",
 					"astro/env/runtime",
 					"arctic",
 					"drizzle-orm",
