@@ -68,10 +68,11 @@ export default function renderFeedPage({ site, language, items }: { site: URL; l
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate" type="application/atom+xml" title="${escapeHtml(config.title)}" href="${escapeHtml(feedUrl)}">
 <style>
-:root{--text:#2a2a28;--muted:#757575;--line:rgba(117,117,117,.22);--bg:#fffffd;--accent:#2a2a28;--pager-line:rgba(42,42,40,.38)}
+:root{--text:#2a2a28;--muted:#757575;--line:rgba(117,117,117,.22);--bg:#fffffd;--accent:#2a2a28;--pager-line:rgba(42,42,40,.38);--font-serif:"Noto Serif",Georgia,"Times New Roman",serif;--font-mono:"Maple Mono NF CN","Maple Mono",Consolas,Monaco,"Cascadia Code","Courier New",monospace}
+[lang="zh-cn"]{--font-serif:"Noto Serif SC","Source Han Serif SC",STSong,"Songti SC",SimSun,serif}
 @media (prefers-color-scheme:dark){:root{--text:#dddddb;--muted:#a5a5a5;--line:rgba(165,165,165,.22);--bg:#0e0e0c;--accent:#dddddb;--pager-line:rgba(221,221,219,.34)}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;line-height:1.75}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-serif),var(--font-mono);line-height:1.75}
 a{color:inherit;text-decoration:none}
 .feed-page{width:clamp(50%,calc(50% + 1176px - 84vw),86%);margin:0 auto;padding:1.1rem .8rem 1.8rem}
 .feed-head{margin-bottom:.75rem}
@@ -84,7 +85,7 @@ a{color:inherit;text-decoration:none}
 .feed-note-title{color:var(--muted);font-size:.76rem;font-weight:600;letter-spacing:.06em}
 .feed-note-desc{margin-top:.36rem}
 .feed-note-url{margin-top:.4rem;display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .42rem;color:var(--muted)}
-.feed-note-url code{display:inline-flex;align-items:center;max-width:min(100%,56ch);padding:.08rem .42rem;border-radius:4px;border:1px solid var(--line);background:transparent;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:.74rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.feed-note-url code{display:inline-flex;align-items:center;max-width:min(100%,56ch);padding:.08rem .42rem;border-radius:4px;border:1px solid var(--line);background:transparent;color:var(--muted);font-family:var(--font-mono);font-size:.74rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
 .posts-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1.4rem}
 .posts-item{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:1.2rem;row-gap:0;align-items:start}
 .posts-item-left{display:contents}
